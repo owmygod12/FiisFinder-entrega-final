@@ -11,3 +11,6 @@
 // ============================================================
 const SUPABASE_URL = "https://ccmpfiumnohranmhhhnp.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_v-BxEZJ5Yo0xqERmE-xeAQ_revbIKiy";
+
+// local: sem autenticação; supabase: exige migração manual e sessão privada.
+const FAVORITES_STORAGE = "local";
