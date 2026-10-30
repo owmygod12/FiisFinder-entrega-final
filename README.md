@@ -1,5 +1,161 @@
 # FIIsFinder — Etapa 02 (Bootcamp II)
 
+## Carteira genérica de favoritos (substitui as regras exclusivas de FIIs abaixo)
+
+Ações, units, FIIs e ETFs são aceitos somente com subType confirmado pelo catálogo, ticker válido, nome, preço positivo real e data da cotação. Índices e categorias desconhecidas não são suportados. Tipo não é inferido pelo sufixo 11. A interface oferece filtros, atualização individual, exclusão e abertura do ativo no gráfico.
+
+Por segurança, FAVORITES_STORAGE em config.js começa como local: favoritos ficam neste navegador, não são sincronizados nem compartilhados. A carteira antiga do Supabase não é apagada nem importada automaticamente. Não há como atribuir seus registros a usuários com segurança porque favoritos_fiis não possui proprietário. Limpar dados do navegador elimina a carteira local. Não use este modo em um perfil de navegador compartilhado para guardar dados privados.
+
+Para habilitar Supabase, revise e execute manualmente sql/001_favoritos_ativos.sql. Ele cria tabela com user_id, unicidade por usuário/ticker e RLS para SELECT/INSERT/UPDATE/DELETE baseado em auth.uid(). A chave pública é preservada. sql/002_importar_legados.sql recebe mapeamento explícito de registro, proprietário e categoria; preencha somente dados conferidos. O script não remove nem sobrescreve os legados e evita duplicatas. dividend_yield é opcional. A data de cotação legada desconhecida continua nula até atualização pela API. sql/003_reversao_sem_exclusao.sql arquiva a tabela nova por renomeação, sem excluir registros.
+
+Depois da migração, configure FAVORITES_STORAGE='supabase'. Use uma sessão Supabase já autenticada ou habilite Anonymous Sign-ins no painel e clique Conectar carteira privada. Esse clique cria uma identidade anônima apenas se não houver sessão; nenhuma conta é criada automaticamente ao abrir a página. Usuários anônimos autenticados recebem papel authenticated, com RLS por UUID; não confundir com acesso público anon. Perder essa sessão pode impedir recuperar a carteira: para uso duradouro, implemente vinculação a login por email. A carteira local não é enviada automaticamente ao banco. São armazenamentos separados, identificados na tela.
+
+Audite pg_policies com a consulta de 001 antes de ativar o modo remoto. Políticas antigas amplas documentadas no projeto não foram alteradas: deixar de consultar a tabela legada não revoga seu acesso público existente. Revise e restrinja seus grants/policies manualmente após mapear a propriedade e verificar consumidores antigos. Nenhuma migração ou escrita no banco real foi executada pelo agente.
+
+Validação: npm test (36 testes) e npm run check aprovados. No Chrome, PETR4 real foi adicionada, atualizada, filtrada, aberta nos detalhes/gráfico e excluída da carteira local, sem erros JavaScript. O primeiro ensaio de automação usou seletor ambíguo para Atualizar; o ensaio corrigido foi aprovado. SQL e CRUD remoto não foram executados em produção.
+
+Reconstrução: com Docker Desktop ativo, execute docker compose up --build -d, depois docker compose ps. O Dockerfile entrega favorites-store.js; o backend expõe o mesmo arquivo no modo Node local. Não publique docker compose config com o token resolvido. Não foram feitos commits, push ou alterações de branch.
+
+
+
+## Diagnóstico e execução atual (Windows 11 / PowerShell)
+
+Em 30/10/2026, esta cópia local não tinha .env nem BRAPI_TOKEN no processo. Sem autenticação, a Brapi retornou HTTP 200 para PETR4 e ITUB4 (22 pontos no histórico de um mês) e HTTP 401 MISSING_TOKEN para PETR3, MXRF11 e ^BVSP. Isso comprova autenticação ausente neste ambiente, não insuficiência de um plano. O 403 relatado não foi reproduzido com uma chave autenticada; a aplicação antiga traduzia todo 403 como limitação comercial e descartava o diagnóstico original.
+
+### Início rápido sem Docker
+
+Instale Node.js 22 ou superior com npm. No PowerShell:
+
+```powershell
+Set-Location 'C:\Users\Turi\Documents\FiisFinder-entrega-final'
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+# Opcional: configure uma chave válida em BRAPI_TOKEN no .env. Não cole chaves no chat.
+npm start
+```
+
+Acesse http://localhost:8080. Sem chave, use PETR4, ITUB4, VALE3 e MGLU3. PETR3 e Ibovespa exigiram autenticação no teste real. O servidor lê .env também quando iniciado por `node server.cjs`; variáveis já definidas no ambiente têm precedência. Após mudar a chave, reinicie a API. A presença de uma chave não comprova sua validade ou permissão de consulta.
+
+### Docker Desktop
+
+Abra o Docker Desktop e aguarde o engine Linux ficar ativo. Valide com `docker info`. Então, na pasta do projeto:
+
+```powershell
+docker compose up --build -d
+docker compose ps
+Invoke-RestMethod http://localhost:8080/healthz
+Invoke-RestMethod http://localhost:8080/api/market/health
+```
+
+O serviço web publica 8080:80 e encaminha /api/market/ ao serviço api:8080 na rede interna. A API não publica porta no host, e 8081 não é utilizada. O Compose define HOST e PORT explicitamente, inclui health checks e aguarda a API saudável antes de iniciar web. Health saudável indica que o servidor responde; não garante assinatura ou acesso à Brapi. BRAPI_TOKEN entra apenas no ambiente do backend e não é copiado para as imagens.
+
+Não execute imagens antigas isoladas: elas podem conter apenas o frontend. Use os dois serviços deste compose.yaml. Não pare containers existentes para liberar portas automaticamente. Para investigar conflitos:
+
+```powershell
+Get-NetTCPConnection -State Listen -LocalPort 8080,8081 -ErrorAction SilentlyContinue
+docker ps --format '{{.Names}} {{.Ports}} {{.Status}}'
+docker compose logs --tail=100 web api
+```
+
+O comando `docker compose config` resolve variáveis e pode mostrar sua chave: confira localmente, mas não publique essa saída. Os logs da aplicação não imprimem credenciais.
+
+### Diagnóstico financeiro e erros
+
+```powershell
+npm run diagnose
+npm test
+npm run check
+docker compose config
+docker compose ps
+```
+
+O diagnóstico consulta sequencialmente os cinco tickers solicitados, imprime somente disponibilidade, status e códigos seguros, e consome chamadas reais. Os testes usam mocks, sem chave nem banco ativo. /api/market/health informa apenas se há uma chave configurada, sem revelar seu valor.
+
+- AUTH_MISSING: falta autenticação exigida pelo ativo.
+- AUTH_INVALID: a credencial foi recusada.
+- ACCESS_DENIED: 403 sem evidência de assinatura; pode haver permissão ou bloqueio do provedor.
+- PLAN_RESTRICTED: a Brapi informou explicitamente restrição comercial.
+- RATE_LIMIT: aguardar Retry-After (segundos ou HTTP-date).
+- NETWORK_ERROR / TIMEOUT / UPSTREAM_ERROR: falhas de conexão, demora ou servidor externo.
+- INVALID_RESPONSE / NO_QUOTE / NO_HISTORY: dados inválidos, cotação ausente ou histórico ausente.
+
+BrapiProvider trata autenticação e respostas; MarketService valida, serializa, agrupa chamadas iguais e mantém cache de sucessos e erros breves. Provedores adicionais podem ser injetados com name, supports(target) e request(target), retornando o mesmo contrato normalizado. A Brapi é sempre a principal. Um fallback só é usado quando configurado, compatível e após falha; a fonte alternativa fica identificada na resposta. Nenhuma alternativa financeira foi ativada nesta entrega.
+
+Históricos diários exibem o dia de referência sem conversão para o dia anterior; intradiários exibem data e hora de Brasília. A área do canvas fica oculta quando não há dados, com explicação ao lado. Índices usam pontos; ações e FIIs usam reais. Os rankings continuam limitados aos quatro ativos públicos indicados, agora com horário de referência por item.
+
+### Alternativas avaliadas
+
+| Fonte | Cobertura/histórico | Autenticação e limites | Decisão |
+| --- | --- | --- | --- |
+| Brapi | B3, FIIs e ^BVSP pelo endpoint documentado; histórico depende do acesso | Bearer no backend; quatro ações públicas; restrições e concorrência dependem da conta | Principal, validada com dados reais públicos |
+| HG Brasil | Ações, FIIs e índices BVSP/IFIX; endpoint histórico documentado | Página de preços anuncia 400 consultas/dia no grátis; documentação do histórico exige chave e plano com suporte | Não foi comprovado histórico gratuito para esta conta; não ativada |
+| Twelve Data | B3 listada com dados EOD a partir de Grow | API key; Basic anuncia 8 créditos/minuto e 800/dia, mas não comprova inclusão da B3 | Não é fallback gratuito comprovado para B3; não ativada |
+| Fintay | Endpoint documentado para histórico de índices | Exige avaliação da chave e cobertura da conta, não disponíveis aqui | Não validada nem ativada |
+
+Referências oficiais: [Brapi autenticação](https://brapi.dev/docs/authentication), [Brapi cotações/históricos](https://brapi.dev/docs/acoes), [HG histórico](https://console.hgbrasil.com/documentation/finance), [HG preços](https://hgbrasil.com/pricing/?origin=finance), [Twelve Data bolsas](https://twelvedata.com/exchanges?level=overview), [Twelve Data preços](https://twelvedata.com/pricing), [Fintay índices](https://fintay.com.br/docs/api/indices-historico). Não foram utilizados scraping, endpoints privados, dados simulados na aplicação ou serviços pagos.
+
+---
+
+
+## Evolução da busca e do dashboard — branch feature/melhoria-filtros
+
+Estas instruções substituem a execução estática e o comando Docker isolado descritos no registro histórico abaixo. A interface continua em HTML/CSS/JavaScript Vanilla, com Chart.js para históricos. O Nginx entrega a interface e encaminha /api/market/ a um proxy Node.js pequeno, sem dependências.
+
+### Executar a versão atual
+
+Requer Node.js 22 ou superior. Na pasta do projeto:
+
+```powershell
+Copy-Item .env.example .env
+# Edite .env e configure BRAPI_TOKEN com uma chave válida, somente no servidor.
+node --env-file-if-exists=.env server.cjs
+```
+
+Abra http://localhost:8080. Também é possível executar `npm start` onde npm estiver instalado. Não abra apenas index.html nem use Live Server sem encaminhar /api/market/ ao proxy.
+
+Com Docker Desktop em execução e a chave no .env:
+
+```sh
+docker compose up --build
+```
+
+O navegador acessa somente a porta 8080 do Nginx; a API fica na rede interna do Compose. O Dockerfile do frontend copia explicitamente os arquivos públicos, sem .env ou código do servidor. Não use build/push das imagens antigas para publicar esta alteração.
+
+### Busca, gráficos e cobertura
+
+- Um único botão Buscar, ao lado do campo no desktop e abaixo no celular. Sugestões ficam no fluxo da página.
+- Catálogo Brapi em /api/quote/list, busca normalizada com debounce de 350 ms e cancelamento de respostas antigas. Nomes exigem selecionar a classe desejada; nomes nunca viram tickers por suposição.
+- Tickers continuam aceitos diretamente; Enter, Escape e setas controlam sugestões. Uma lista local limitada é usada somente quando o catálogo falha, com aviso explícito e sem preços.
+- Mercado Financeiro começa em ^BVSP. Há períodos 1d/5d/1mo/6mo/1y e intervalos 5m/30m/1d; os valores aceitos retornados pela API são verificados quando presentes. Recursos sem permissão ou sem histórico mostram indisponibilidade, sem dados inventados.
+- Rankings usam amostra fixa e explicitamente limitada aos quatro tickers públicos PETR4, VALE3, ITUB4 e MGLU3. São quatro cotações, sequenciais e com cache. Não representa toda a B3 nem componentes completos do Ibovespa. Registros sem preço, variação ou data válida são excluídos, assim como cotações de pregão diferente do mais recente recebido. A interface informa o pregão e cobertura incompleta.
+- Cache do proxy: catálogo por 5 minutos, cotações/históricos por 1 minuto. Chamadas iguais são agrupadas; há somente uma chamada simultânea à Brapi. HTTP 429 respeita Retry-After, sem repetição automática. O plano da conta continua determinando a disponibilidade de ativos, períodos e intervalos.
+
+### Favoritos e segurança
+
+O schema existente permanece: favoritos_fiis(id, criado_em, ticker, nome, preco, dividend_yield). Nenhuma migração, alteração de RLS ou mudança destrutiva foi executada. A chave pública Supabase de config.js foi preservada. O cliente rejeita chaves service_role/secret. Apenas ativos com subType=fii confirmado pelo catálogo podem ser adicionados: índices, ações, units e ativos sem classificação ficam desabilitados. Não foi implementado favorito de ações; isso exige uma migração separada.
+
+O token Brapi anteriormente embutido foi removido do frontend. Ele continua no histórico antigo do Git: revogue/rotacione essa chave no painel Brapi e configure uma nova em BRAPI_TOKEN no .env do servidor. Não reutilize a chave publicada. O proxy usa Authorization, nunca registra segredos e não devolve mensagens privadas do provedor. Não versione .env. A aplicação depende dos CDNs de Supabase e Chart.js; falhas são informadas na interface.
+
+### Verificação
+
+```sh
+node --test
+node --check script.js
+node --check market.js
+node --check market-core.js
+node --check server.cjs
+```
+
+Alternativas: `npm test` e `npm run check`. O workflow .github/workflows/tests.yml executa testes e sintaxe em PRs para main, sem alterar proteções da branch. Os testes usam dados controlados e não dependem de Brapi ou Supabase ativos.
+
+Documentação consultada: [catálogo](https://brapi.dev/docs/acoes/list), [cotação e históricos v1](https://brapi.dev/docs/acoes), [autenticação e limites](https://brapi.dev/docs/authentication). O endpoint v1 foi mantido por compatibilidade com a integração existente; a documentação informa que continua ativo.
+
+---
+
+## Registro da entrega anterior
+
+O texto a seguir preserva a documentação acadêmica anterior. Afirmações de deploy, imagens publicadas e execução de infraestrutura são registros anteriores, não validações desta contribuição.
+
+
 Aplicação web moderna para consulta, monitoramento e análise de cotações em tempo real de Fundos de Investimento Imobiliário (FIIs) listados na B3. O projeto evoluiu de uma Single Page Application (SPA) puramente estática da Etapa 01 para uma arquitetura robusta de microsserviço web com persistência em nuvem via **Supabase (BaaS)**, operações completas de **CRUD para carteira de favoritos**, conteinerização otimizada com **Docker e Nginx sobre Alpine Linux**, e cumprimento integral de todos os requisitos do edital e das quatro **Sidequests Oficiais (SQ1 a SQ4)**.
 
 ---

@@ -16,22 +16,22 @@
     /* Cores de Fundo e Superfícies */
     --bg-geral: #0F1012;
     --bg-superficie: #1A1B1E;
-    
+
     /* Bordas */
     --border-color: #2C2E33;
-    
+
     /* Destaque / Accent */
     --accent-color: #D4C5B9;
-    
+
     /* Textos */
     --text-principal: #F8F9FA;
     --text-secundario: #909296;
-    
+
     /* Cores Semânticas */
     --color-sucesso: #4ADE80;
     --color-erro: #F87171;
     --bg-erro: rgba(239, 68, 68, 0.12);
-    
+
     /* Tipografia */
     --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
@@ -42,7 +42,7 @@
 html {
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
+
     scroll-behavior: smooth;
 }
 
@@ -50,7 +50,7 @@ body {
     width: 100%;
     max-width: 100%;
     min-height: 100vh;
-    overflow-x: hidden;
+
     font-family: var(--font-family);
     background-color: var(--bg-geral);
     color: var(--text-principal);
@@ -64,7 +64,7 @@ body {
    ========================================================================== */
 main {
     width: 100%;
-    max-width: 580px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 2rem clamp(0.75rem, 4vw, 1rem); /* Padding fluido contra cortes em telas estreitas */
     box-sizing: border-box;
@@ -139,7 +139,7 @@ h1 {
     padding: 0.75rem 1rem;
     border-radius: 8px;
     font-size: 1rem;
-    text-transform: uppercase;
+    text-transform: none;
     outline: none;
     transition: border-color 0.2s ease;
     box-sizing: border-box;
@@ -737,3 +737,116 @@ h1 {
         font-size: 0.95rem;
     }
 }
+/* Busca inteligente */
+
+.search-suggestions {
+    list-style: none;
+    background: var(--bg-superficie);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-top: 0.75rem;
+    overflow: hidden;
+}
+
+.search-suggestions li {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    color: var(--text-principal);
+}
+
+.search-suggestions li:last-child {
+    border-bottom: none;
+}
+
+.search-suggestions li:hover {
+    background: var(--border-color);
+}
+
+#ticker-input {
+    text-transform: none;
+}
+/* ==================================================
+   Correção responsiva da busca inteligente
+   ================================================== */
+
+.search-wrapper {
+    width: 100%;
+    min-width: 0;
+}
+
+.search-wrapper .input-group {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    margin-bottom: 0;
+}
+
+.search-wrapper #ticker-input {
+    flex: 1 1 0;
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+}
+
+.search-wrapper #search-btn {
+    flex: 0 0 auto;
+    min-height: 48px;
+}
+
+.search-wrapper .search-suggestions {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0;
+}
+
+.search-wrapper .search-suggestions li {
+    overflow-wrap: anywhere;
+}
+
+/* Celulares */
+@media (max-width: 480px) {
+    .search-wrapper .input-group {
+        flex-direction: column;
+    }
+
+    .search-wrapper #ticker-input,
+    .search-wrapper #search-btn {
+        width: 100%;
+        min-height: 48px;
+    }
+}
+/* Dashboard e componentes de mercado */
+main > section { margin-bottom: 1.5rem; }
+.dashboard-panel { background: var(--bg-superficie); border: 1px solid var(--border-color); border-radius: 12px; padding: clamp(1rem, 3vw, 1.5rem); min-width: 0; }
+.section-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; text-align: left; margin-bottom: 1rem; flex-wrap: wrap; }
+h2 { font-size: clamp(1.15rem, 2vw, 1.4rem); }
+h3 { font-size: 1rem; margin-bottom: 0.75rem; }
+.section-note { color: var(--text-secundario); font-size: 0.85rem; margin: 0.5rem 0; overflow-wrap: anywhere; }
+.section-note:empty { display: none; }
+.period-label { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+select, #refresh-rankings { background: var(--bg-geral); color: var(--text-principal); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem; min-height: 44px; font: inherit; cursor: pointer; max-width: 100%; }
+button:disabled { cursor: wait; opacity: 0.65; }
+button:focus-visible, select:focus-visible, [role="option"]:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+.search-suggestions { max-height: 320px; overflow-y: auto; }
+.search-suggestions [aria-selected="true"] { background: var(--border-color); outline: 1px solid var(--accent-color); outline-offset: -1px; }
+.chart-container { position: relative; height: 320px; width: 100%; min-width: 0; }
+.chart-container canvas { max-width: 100%; }
+.rankings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.ranking-list { list-style: none; }
+.ranking-list li { padding: 0.65rem 0; border-bottom: 1px solid var(--border-color); }
+.ranking-button { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem; width: 100%; text-align: left; background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; min-height: 44px; }
+.ranking-button small { display: block; color: var(--text-secundario); overflow-wrap: anywhere; }
+.ranking-button .ranking-numbers { text-align: right; }
+.fii-title h2, .favorites-title-group h2 { white-space: normal; overflow-wrap: anywhere; }
+.metric-value, .metric-label { white-space: normal; overflow-wrap: anywhere; }
+#result-card .card-header { text-align: left; }
+@media (min-width: 768px) { .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .favorites-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .rankings-grid { grid-template-columns: minmax(0, 1fr); } .chart-container { height: 260px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+.favorite-details { background: transparent; color: var(--text-principal); border: 0; text-align: left; font: inherit; cursor: pointer; overflow-wrap: anywhere; }
+.favorite-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.favorite-actions button, #favorites-connect { background: var(--bg-geral); color: var(--text-principal); border: 1px solid var(--border-color); padding: .5rem; border-radius: 6px; min-height: 44px; cursor: pointer; }

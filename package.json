@@ -1,0 +1,14 @@
+{
+  "name": "fiisfinder",
+  "private": true,
+  "version": "2.1.0",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.cjs",
+    "test": "node --test",
+    "check": "node --check script.js && node --check market.js && node --check market-core.js && node --check server.cjs && node --check market-service.cjs && node --check config.js && node --check diagnostics.cjs && node --check favorites-store.js",
+    "diagnose": "node --env-file-if-exists=.env diagnostics.cjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

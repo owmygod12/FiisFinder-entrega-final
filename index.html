@@ -12,13 +12,20 @@
             <h1>FIIsFinder</h1>
         </header>
         
-        <section id="search-section">
-            <label for="ticker-input" class="search-label">Digite o nome do Fundo Imobiliário</label>
-            <div class="input-group">
-                <input type="text" id="ticker-input" maxlength="6" autocomplete="off" spellcheck="false" placeholder="Ex: MXRF11">
-                <button id="search-btn">Buscar</button>
+        <p id="integration-status" class="section-note" role="status" aria-live="polite"></p>
+        <section id="search-section" aria-label="Pesquisa inteligente">
+            <label for="ticker-input" class="search-label">Pesquise por empresa, fundo, índice ou ticker</label>
+            <div class="search-wrapper">
+                <div class="input-group">
+                    <input type="search" id="ticker-input" autocomplete="off" spellcheck="false"
+                        placeholder="Ex: Itaú, Petrobras ou MXRF11" role="combobox" aria-autocomplete="list"
+                        aria-expanded="false" aria-controls="search-suggestions" aria-describedby="search-status">
+                    <button id="search-btn" type="button">Buscar</button>
+                </div>
+                <ul id="search-suggestions" class="search-suggestions hidden" role="listbox" aria-label="Sugestões de ativos"></ul>
+                <p id="search-status" class="section-note" role="status" aria-live="polite"></p>
             </div>
-            <div id="error-state" class="hidden">Mínimo de 6 Caracteres.</div>
+            <div id="error-state" class="hidden" role="alert"></div>
         </section>
 
         <section id="states-container">
@@ -29,7 +36,7 @@
 
             <article id="result-card" class="hidden">
                 <header class="card-header">
-                    <img id="fii-logo" src="" alt="Logo do FII">
+                    <img id="fii-logo" src="" alt="Logo do ativo">
                     <div class="fii-title">
                         <h2 id="fii-name">Nome do Fundo</h2>
                         <span id="fii-ticker">TICKER</span>
@@ -51,7 +58,7 @@
                         <span class="metric-value" id="fii-max">R$ 0,00</span>
                     </div>
                     <div class="metric">
-                        <span class="metric-label">Volume (Mês)</span>
+                        <span class="metric-label">Volume (pregão)</span>
                         <span class="metric-value" id="fii-volume">R$ 0,0 M</span>
                     </div>
                     <div class="metric">
@@ -61,19 +68,36 @@
                 </div>
 
                 <div class="card-actions">
-                    <button id="save-favorite-btn" class="btn-favorite" type="button" aria-label="Salvar FII nos favoritos">
+                    <button id="save-favorite-btn" class="btn-favorite" type="button" aria-label="Adicionar ativo aos favoritos">
                         <span class="btn-icon">⭐</span>
-                        <span class="btn-text">Salvar nos favoritos</span>
+                        <span class="btn-text">Adicionar aos favoritos</span>
                     </button>
                     <div id="favorite-feedback" class="favorite-feedback hidden" role="status" aria-live="polite"></div>
                 </div>
             </article>
         </section>
 
+        <section id="market-section" class="dashboard-panel" aria-labelledby="market-title">
+            <header class="section-header"><div><h2 id="market-title">Mercado Financeiro</h2>
+                <p id="chart-asset" class="section-note">Ibovespa · ^BVSP</p></div>
+                <label class="period-label">Período <select id="chart-period">
+                    <option value="1d">1 dia</option><option value="5d">5 dias</option>
+                    <option value="1mo" selected>1 mês</option><option value="6mo">6 meses</option><option value="1y">1 ano</option>
+                </select></label></header>
+            <p id="chart-status" class="section-note" role="status" aria-live="polite"></p>
+            <div class="chart-container"><canvas id="market-chart" role="img" aria-label="Histórico de preços do ativo"></canvas></div>
+        </section>
+        <section id="rankings-section" class="dashboard-panel" aria-labelledby="rankings-title">
+            <header class="section-header"><h2 id="rankings-title">Movimentos do mercado</h2><button id="refresh-rankings" type="button">Atualizar</button></header>
+            <p id="rankings-status" class="section-note" role="status" aria-live="polite"></p>
+            <div class="rankings-grid"><section><h3>Maiores altas</h3><ul id="gainers-list" class="ranking-list"></ul></section>
+                <section><h3>Maiores quedas</h3><ul id="losers-list" class="ranking-list"></ul></section></div>
+        </section>
+
         <section id="favoritos" class="favorites-section" aria-labelledby="favorites-title">
             <header class="favorites-header">
                 <div class="favorites-title-group">
-                    <h2 id="favorites-title">Meus FIIs Favoritos</h2>
+                    <h2 id="favorites-title">Meus Ativos Favoritos</h2>
                     <span id="favorites-count" class="favorites-badge">0</span>
                 </div>
             </header>
@@ -84,10 +108,14 @@
             </div>
 
             <div id="favorites-empty" class="favorites-state-container hidden">
-                <p class="empty-title">Nenhum FII favoritado ainda.</p>
-                <p class="empty-subtitle">Consulte um ativo acima e clique em "Salvar nos favoritos" para acompanhá-lo aqui.</p>
+                <p class="empty-title">Nenhum ativo nesta categoria.</p>
+                <p class="empty-subtitle">Consulte um ativo acima e clique em "Adicionar aos favoritos" para acompanhá-lo aqui.</p>
             </div>
 
+            <p id="favorites-mode" class="section-note" role="status"></p>
+            <button id="favorites-connect" class="hidden" type="button">Conectar carteira privada</button>
+            <label>Categoria <select id="favorites-filter"><option value="todos">Todos</option><option value="acao">Ações</option><option value="fii">FIIs</option><option value="etf">ETFs</option><option value="unit">Units</option></select></label>
+            <p id="favorites-error" class="section-note" role="status" aria-live="polite"></p>
             <ul id="favorites-list" class="favorites-grid" role="list">
                 <!-- Itens inseridos dinamicamente pelo script.js -->
             </ul>
@@ -100,6 +128,10 @@
     <!-- 2. Credenciais públicas do projeto -->
     <script src="config.js"></script>
     <!-- 3. Lógica principal da aplicação -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="market-core.js"></script>
+    <script src="favorites-store.js"></script>
     <script src="script.js"></script>
+    <script src="market.js"></script>
 </body>
 </html>
