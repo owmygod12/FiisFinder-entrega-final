@@ -1,198 +1,201 @@
-# FIIsFinder — Etapa 02 (Bootcamp II)
+# FIIsFinder — Etapa 03 (Bootcamp II)
 
-## Carteira genérica de favoritos (substitui as regras exclusivas de FIIs abaixo)
+Plataforma web FinTech para consulta de cotações da B3, análise gráfica histórica, gestão de carteira de ativos favoritos e simulação patrimonial (**Estimativa de Proventos, Calculadora de Juros Compostos e Simulador de Reinvestimento de Dividendos**).
 
-Ações, units, FIIs e ETFs são aceitos somente com subType confirmado pelo catálogo, ticker válido, nome, preço positivo real e data da cotação. Índices e categorias desconhecidas não são suportados. Tipo não é inferido pelo sufixo 11. A interface oferece filtros, atualização individual, exclusão e abertura do ativo no gráfico.
+O projeto consolida três etapas evolutivas de engenharia de software:
+- **Etapa 01:** Single Page Application (SPA) responsiva em HTML5, CSS3 (Design Tokens Dark Theme) e Vanilla JavaScript (ES6+), integrada à API da Brapi.
+- **Etapa 02:** Persistência em nuvem com **Supabase (PostgreSQL + Row Level Security)**, operações completas de **CRUD**, conteinerização com **Docker e Nginx Alpine** e entrega integral das **Sidequests Oficiais (SQ1 a SQ4)**.
+- **Etapa 03:** Engenharia colaborativa com governança Git, proteção da branch `main`, pipeline de **CI/CD no GitHub Actions**, proxy backend em **Node.js** com cache e serialização de concorrência, gráficos históricos com **Chart.js**, módulo de **Planejamento Financeiro & Simulações** e suíte de testes automatizados nativos com `node:test`.
 
-Por segurança, FAVORITES_STORAGE em config.js começa como local: favoritos ficam neste navegador, não são sincronizados nem compartilhados. A carteira antiga do Supabase não é apagada nem importada automaticamente. Não há como atribuir seus registros a usuários com segurança porque favoritos_fiis não possui proprietário. Limpar dados do navegador elimina a carteira local. Não use este modo em um perfil de navegador compartilhado para guardar dados privados.
+---
 
-Para habilitar Supabase, revise e execute manualmente sql/001_favoritos_ativos.sql. Ele cria tabela com user_id, unicidade por usuário/ticker e RLS para SELECT/INSERT/UPDATE/DELETE baseado em auth.uid(). A chave pública é preservada. sql/002_importar_legados.sql recebe mapeamento explícito de registro, proprietário e categoria; preencha somente dados conferidos. O script não remove nem sobrescreve os legados e evita duplicatas. dividend_yield é opcional. A data de cotação legada desconhecida continua nula até atualização pela API. sql/003_reversao_sem_exclusao.sql arquiva a tabela nova por renomeação, sem excluir registros.
+## 1. Integrantes e Divisão de Escopo (Etapa 03)
 
-Depois da migração, configure FAVORITES_STORAGE='supabase'. Use uma sessão Supabase já autenticada ou habilite Anonymous Sign-ins no painel e clique Conectar carteira privada. Esse clique cria uma identidade anônima apenas se não houver sessão; nenhuma conta é criada automaticamente ao abrir a página. Usuários anônimos autenticados recebem papel authenticated, com RLS por UUID; não confundir com acesso público anon. Perder essa sessão pode impedir recuperar a carteira: para uso duradouro, implemente vinculação a login por email. A carteira local não é enviada automaticamente ao banco. São armazenamentos separados, identificados na tela.
+| Integrante | RA / Matrícula | Usuário GitHub | Papel e Contribuição Técnica na Etapa 03 | Pull Request Aprovada |
+| :--- | :--- | :--- | :--- | :--- |
+| **Henrique Lopes Borges De Souza** | 22612443 | `owmygod12` | • **Autor original da arquitetura base**, conteinerização Docker/Nginx, pipeline de CI e SPA.<br>• Implementação da **Calculadora de Juros Compostos** e do **Simulador de Reinvestimento de Dividendos** (`market-core.js`).<br>• Camada de validação defensiva contra entradas numéricas inválidas.<br>• Suíte de testes unitários automatizados para regras financeiras (`tests/calculators.test.cjs`). | [PR #X - Calculadoras & Testes](https://github.com/owmygod12/FiisFinder-entrega-final/pulls) |
+| **Victor Augusto Rosendo Galvão** | 22611054 | `turi-pixel` | • Expansão do catálogo de busca (remoção do limite de caracteres, busca por razão social e suporte ampliado a Ações e BDRs).<br>• Integração da biblioteca visual (Chart.js) para renderização do histórico de cotações.<br>• Ajustes na persistência da carteira no Supabase.<br>• Suíte de testes de integração e proxy da API (`tests/*.test.cjs`). | [PR #1 - Busca, Gráficos & Proxy](https://github.com/owmygod12/FiisFinder-entrega-final/pull/1) |
 
-Audite pg_policies com a consulta de 001 antes de ativar o modo remoto. Políticas antigas amplas documentadas no projeto não foram alteradas: deixar de consultar a tabela legada não revoga seu acesso público existente. Revise e restrinja seus grants/policies manualmente após mapear a propriedade e verificar consumidores antigos. Nenhuma migração ou escrita no banco real foi executada pelo agente.
+---
 
-Validação: npm test (36 testes) e npm run check aprovados. No Chrome, PETR4 real foi adicionada, atualizada, filtrada, aberta nos detalhes/gráfico e excluída da carteira local, sem erros JavaScript. O primeiro ensaio de automação usou seletor ambíguo para Atualizar; o ensaio corrigido foi aprovado. SQL e CRUD remoto não foram executados em produção.
+## 2. Identidade e Links de Infraestrutura
 
-Reconstrução: com Docker Desktop ativo, execute docker compose up --build -d, depois docker compose ps. O Dockerfile entrega favorites-store.js; o backend expõe o mesmo arquivo no modo Node local. Não publique docker compose config com o token resolvido. Não foram feitos commits, push ou alterações de branch.
+- **Repositório Oficial da Entrega Final (Etapa 03):** [https://github.com/owmygod12/FiisFinder-entrega-final](https://github.com/owmygod12/FiisFinder-entrega-final)
+- **Repositório Base Original (Etapas 01 e 02):** [https://github.com/owmygod12/FIIsFinder](https://github.com/owmygod12/FIIsFinder)
+- **Deploy Estático Inicial (GitHub Pages - Etapa 01):** [https://owmygod12.github.io/FIIsFinder/](https://owmygod12.github.io/FIIsFinder/)
+- **Repositório Oficial no Docker Hub:** [https://hub.docker.com/r/henriquelopescaze/fiisfinder](https://hub.docker.com/r/henriquelopescaze/fiisfinder)
+- **Imagem e Tags Publicadas no Registry:** `henriquelopescaze/fiisfinder` (`1.0`, `1.1` e `latest`)
+- **Banco de Dados Gerenciado (Supabase):** [https://supabase.com/](https://supabase.com/)
+- **Provedor de Dados Financeiros B3 (Brapi):** [https://brapi.dev/](https://brapi.dev/)
 
+---
 
+## 3. Governança, Proteção de Branch e CI/CD
 
-## Diagnóstico e execução atual (Windows 11 / PowerShell)
+O fluxo de trabalho colaborativo da Etapa 03 adota **Feature Branch Workflow** com regras estritas de governança configuradas diretamente no GitHub sobre a branch principal (`main`):
 
-Em 30/10/2026, esta cópia local não tinha .env nem BRAPI_TOKEN no processo. Sem autenticação, a Brapi retornou HTTP 200 para PETR4 e ITUB4 (22 pontos no histórico de um mês) e HTTP 401 MISSING_TOKEN para PETR3, MXRF11 e ^BVSP. Isso comprova autenticação ausente neste ambiente, não insuficiência de um plano. O 403 relatado não foi reproduzido com uma chave autenticada; a aplicação antiga traduzia todo 403 como limitação comercial e descartava o diagnóstico original.
+1. **Bloqueio de Push Direto na `main`:** Todas as entregas partem de branches dedicadas (como `feature/melhoria-filtros` e `feature/calculadoras-financeiras`) e só ingressam na `main` via Pull Request.
+2. **Revisão por Pares Obrigatória (*Code Review*):** Regra `Require a pull request before merging` com aprovação obrigatória de outro integrante antes da liberação do botão de merge.
+3. **Validação Compulsória de Status Checks (CI/CD):** Regra `Require status checks to pass before merging` vinculada ao workflow [`.github/workflows/tests.yml`](./.github/workflows/tests.yml). A cada abertura ou atualização de Pull Request direcionada à `main`, o GitHub Actions provisiona um runner `ubuntu-latest` com **Node.js 22** e executa:
+   - `npm test` (`node --test`): Execução completa de todas as suítes unitárias e de integração.
+   - `npm run check` (`node --check`): Validação sintática estática de todos os módulos do frontend e do backend.
 
-### Início rápido sem Docker
+Caso qualquer asserção falhe ou ocorra erro sintático, o pipeline reprova a verificação e **bloqueia automaticamente o merge** da Pull Request:
 
-Instale Node.js 22 ou superior com npm. No PowerShell:
+![CI Bloqueando Merge](./ci-blocked.png)
+
+---
+
+## 4. Simulação e Resolução de Conflito de Merge
+
+Durante o desenvolvimento paralelo das features da Etapa 03, foi conduzido e documentado o processo real de tratamento de conflitos concorrentes no Git:
+
+- **Arquivo Conflitante:** `index.html` (seção final de importação de scripts e dependências da SPA).
+- **Cenário Técnico:** Ocorreu edição concorrente nas mesmas linhas do `index.html` entre a branch responsável pela integração da biblioteca gráfica `Chart.js` e do módulo `market.js` (`turi-pixel`) e a branch responsável pela incorporação dos módulos e controladores das calculadoras financeiras (`owmygod12`).
+- **Procedimento de Resolução:**
+  1. Sincronização da branch de trabalho com o estado atualizado da branch principal via `git pull origin main`.
+  2. Inspeção manual do bloco sinalizado pelo Git e remoção cuidadosa dos marcadores de conflito (`<<<<<<<`, `=======`, `>>>>>>>`).
+  3. Unificação ordenada das tags `<script>` garantindo a precedência correta de carregamento (`@supabase/supabase-js` → `config.js` → `chart.umd.min.js` → `market-core.js` → `favorites-store.js` → `script.js` → `market.js`) e unicidade absoluta de atributos `id` no DOM.
+  4. Execução local de `npm test` e `npm run check` para comprovar integridade funcional e sintática antes do commit de resolução e conclusão do merge na branch principal.
+
+---
+
+## 5. Guia Unificado de Execução
+
+### Modo Público vs. Modo Autenticado da Brapi (`BRAPI_TOKEN`)
+
+A aplicação opera de forma resiliente em dois modos de acesso à API financeira:
+- **Modo Público (Sem `.env` ou `BRAPI_TOKEN` vazio):** Funciona imediatamente sem necessidade de cadastro externo para os quatro ativos públicos de demonstração da Brapi: **`PETR4`**, **`VALE3`**, **`ITUB4`** e **`MGLU3`**.
+- **Modo Autenticado (Com `BRAPI_TOKEN` configurado no `.env`):** Libera acesso completo ao catálogo da B3, incluindo Fundos Imobiliários (`MXRF11`, `HGLG11`, `KNCR11`), demais classes de ações (`PETR3`, `ITUB3`, Units), ETFs (`BOVA11`), BDRs e séries históricas de índices como o Ibovespa (`^BVSP`).
+
+> **Segurança:** A variável `BRAPI_TOKEN` reside **exclusivamente no ambiente do servidor Node.js** (`.env`). Nunca insira tokens privados da Brapi ou chaves `service_role` do Supabase em `config.js` ou no código frontend.
+
+### Opção 1: Docker Compose — Stack Completa Web + API (Recomendado)
+
+Sobe simultaneamente o servidor **Nginx** (`web`, exposto na porta `8080`) e o microsserviço **Node.js** (`api`, isolado na rede interna do Compose com `healthcheck` ativo):
 
 ```powershell
-Set-Location 'C:\Users\Turi\Documents\FiisFinder-entrega-final'
+# 1. Crie o arquivo .env a partir do modelo (opcionalmente adicione seu BRAPI_TOKEN)
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# Opcional: configure uma chave válida em BRAPI_TOKEN no .env. Não cole chaves no chat.
-npm start
-```
 
-Acesse http://localhost:8080. Sem chave, use PETR4, ITUB4, VALE3 e MGLU3. PETR3 e Ibovespa exigiram autenticação no teste real. O servidor lê .env também quando iniciado por `node server.cjs`; variáveis já definidas no ambiente têm precedência. Após mudar a chave, reinicie a API. A presença de uma chave não comprova sua validade ou permissão de consulta.
-
-### Docker Desktop
-
-Abra o Docker Desktop e aguarde o engine Linux ficar ativo. Valide com `docker info`. Então, na pasta do projeto:
-
-```powershell
+# 2. Compile as imagens e inicie os serviços em segundo plano
 docker compose up --build -d
+
+# 3. Verifique a saúde dos contêineres
 docker compose ps
 Invoke-RestMethod http://localhost:8080/healthz
 Invoke-RestMethod http://localhost:8080/api/market/health
 ```
 
-O serviço web publica 8080:80 e encaminha /api/market/ ao serviço api:8080 na rede interna. A API não publica porta no host, e 8081 não é utilizada. O Compose define HOST e PORT explicitamente, inclui health checks e aguarda a API saudável antes de iniciar web. Health saudável indica que o servidor responde; não garante assinatura ou acesso à Brapi. BRAPI_TOKEN entra apenas no ambiente do backend e não é copiado para as imagens.
+Acesse no navegador: **`http://localhost:8080`**
 
-Não execute imagens antigas isoladas: elas podem conter apenas o frontend. Use os dois serviços deste compose.yaml. Não pare containers existentes para liberar portas automaticamente. Para investigar conflitos:
+Para acompanhar logs ou encerrar os serviços:
+```powershell
+docker compose logs -f web api
+docker compose down
+```
+
+### Opção 2: Contêiner Único Oficial (Docker Hub)
+
+Executa diretamente a imagem pública publicada no Docker Hub:
+
+```bash
+docker run -d -p 8080:80 --name fiisfinder henriquelopescaze/fiisfinder:latest
+```
+
+### Opção 3: Execução Local com Node.js (Sem Docker)
+
+Requer **Node.js 22 ou superior** (zero dependências `npm install` externas — utiliza apenas módulos nativos do Node.js). O próprio `server.cjs` serve os arquivos estáticos da SPA e responde pelo proxy `/api/market/` (carregando `.env` automaticamente quando presente):
 
 ```powershell
-Get-NetTCPConnection -State Listen -LocalPort 8080,8081 -ErrorAction SilentlyContinue
-docker ps --format '{{.Names}} {{.Ports}} {{.Status}}'
-docker compose logs --tail=100 web api
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+node server.cjs
+# Alternativa equivalente: npm start
 ```
 
-O comando `docker compose config` resolve variáveis e pode mostrar sua chave: confira localmente, mas não publique essa saída. Os logs da aplicação não imprimem credenciais.
-
-### Diagnóstico financeiro e erros
-
-```powershell
-npm run diagnose
-npm test
-npm run check
-docker compose config
-docker compose ps
-```
-
-O diagnóstico consulta sequencialmente os cinco tickers solicitados, imprime somente disponibilidade, status e códigos seguros, e consome chamadas reais. Os testes usam mocks, sem chave nem banco ativo. /api/market/health informa apenas se há uma chave configurada, sem revelar seu valor.
-
-- AUTH_MISSING: falta autenticação exigida pelo ativo.
-- AUTH_INVALID: a credencial foi recusada.
-- ACCESS_DENIED: 403 sem evidência de assinatura; pode haver permissão ou bloqueio do provedor.
-- PLAN_RESTRICTED: a Brapi informou explicitamente restrição comercial.
-- RATE_LIMIT: aguardar Retry-After (segundos ou HTTP-date).
-- NETWORK_ERROR / TIMEOUT / UPSTREAM_ERROR: falhas de conexão, demora ou servidor externo.
-- INVALID_RESPONSE / NO_QUOTE / NO_HISTORY: dados inválidos, cotação ausente ou histórico ausente.
-
-BrapiProvider trata autenticação e respostas; MarketService valida, serializa, agrupa chamadas iguais e mantém cache de sucessos e erros breves. Provedores adicionais podem ser injetados com name, supports(target) e request(target), retornando o mesmo contrato normalizado. A Brapi é sempre a principal. Um fallback só é usado quando configurado, compatível e após falha; a fonte alternativa fica identificada na resposta. Nenhuma alternativa financeira foi ativada nesta entrega.
-
-Históricos diários exibem o dia de referência sem conversão para o dia anterior; intradiários exibem data e hora de Brasília. A área do canvas fica oculta quando não há dados, com explicação ao lado. Índices usam pontos; ações e FIIs usam reais. Os rankings continuam limitados aos quatro ativos públicos indicados, agora com horário de referência por item.
-
-### Alternativas avaliadas
-
-| Fonte | Cobertura/histórico | Autenticação e limites | Decisão |
-| --- | --- | --- | --- |
-| Brapi | B3, FIIs e ^BVSP pelo endpoint documentado; histórico depende do acesso | Bearer no backend; quatro ações públicas; restrições e concorrência dependem da conta | Principal, validada com dados reais públicos |
-| HG Brasil | Ações, FIIs e índices BVSP/IFIX; endpoint histórico documentado | Página de preços anuncia 400 consultas/dia no grátis; documentação do histórico exige chave e plano com suporte | Não foi comprovado histórico gratuito para esta conta; não ativada |
-| Twelve Data | B3 listada com dados EOD a partir de Grow | API key; Basic anuncia 8 créditos/minuto e 800/dia, mas não comprova inclusão da B3 | Não é fallback gratuito comprovado para B3; não ativada |
-| Fintay | Endpoint documentado para histórico de índices | Exige avaliação da chave e cobertura da conta, não disponíveis aqui | Não validada nem ativada |
-
-Referências oficiais: [Brapi autenticação](https://brapi.dev/docs/authentication), [Brapi cotações/históricos](https://brapi.dev/docs/acoes), [HG histórico](https://console.hgbrasil.com/documentation/finance), [HG preços](https://hgbrasil.com/pricing/?origin=finance), [Twelve Data bolsas](https://twelvedata.com/exchanges?level=overview), [Twelve Data preços](https://twelvedata.com/pricing), [Fintay índices](https://fintay.com.br/docs/api/indices-historico). Não foram utilizados scraping, endpoints privados, dados simulados na aplicação ou serviços pagos.
+Acesse no navegador: **`http://localhost:8080`**
 
 ---
 
+## 6. Arquitetura Técnica Detalhada
 
-## Evolução da busca e do dashboard — branch feature/melhoria-filtros
-
-Estas instruções substituem a execução estática e o comando Docker isolado descritos no registro histórico abaixo. A interface continua em HTML/CSS/JavaScript Vanilla, com Chart.js para históricos. O Nginx entrega a interface e encaminha /api/market/ a um proxy Node.js pequeno, sem dependências.
-
-### Executar a versão atual
-
-Requer Node.js 22 ou superior. Na pasta do projeto:
-
-```powershell
-Copy-Item .env.example .env
-# Edite .env e configure BRAPI_TOKEN com uma chave válida, somente no servidor.
-node --env-file-if-exists=.env server.cjs
+```mermaid
+flowchart TD
+    User([Usuário / Navegador]) -->|HTTP :8080| Web[Nginx Alpine / Servidor Web]
+    Web -->|Arquivos Estáticos SPA| User
+    Web -->|Proxy /api/market/* e /healthz| API[Proxy Node.js: server.cjs + market-service.cjs]
+    API -->|Bearer BRAPI_TOKEN + Cache + Fila| Brapi[Brapi API - B3]
+    User <-->|Cálculos Puros no Cliente| Core[Domínio Puro UMD: market-core.js]
+    API <-->|Validação de Tickers e Séries| Core
+    User <-->|CRUD Carteira: favorites-store.js| Store{FAVORITES_STORAGE}
+    Store -->|Modo Padrão: local| Local[(Browser LocalStorage)]
+    Store -->|Modo Nuvem: supabase| Supa[(Supabase PostgreSQL + RLS)]
 ```
 
-Abra http://localhost:8080. Também é possível executar `npm start` onde npm estiver instalado. Não abra apenas index.html nem use Live Server sem encaminhar /api/market/ ao proxy.
+### 6.1. Motor de Domínio e Cálculos Financeiros Puros (`market-core.js`)
 
-Com Docker Desktop em execução e a chave no .env:
+O módulo `market-core.js` utiliza o padrão universal **UMD/IIFE**, expondo a mesma API determinística tanto no navegador (`window.MarketCore`) quanto no Node.js (`module.exports`), sem qualquer acoplamento com DOM ou rede:
 
-```sh
-docker compose up --build
-```
+- **Catálogo, Normalização e Séries Gráficas:**
+  - `normalize`, `isTicker`, `finite`, `assets` e `search`: normalização Unicode (`NFD`), validação estrita por expressão regular de tickers da B3/índices e ordenação com prioridade para correspondência exata de código.
+  - `rank`: deduplicação por ticker, filtragem de preços/variações inválidas e separação ordenada de maiores altas (`gainers`) e maiores quedas (`losers`).
+  - `history`, `periodParams` e `chartData`: saneamento cronológico de séries históricas e formatação de rótulos respeitando UTC em janelas diárias (`1d`) e fuso `America/Sao_Paulo` em intervalos intradiários (`5m`, `30m`), eliminando deslocamentos indevidos de data.
+  - `isFii`, `assetType` e `validFavorite`: validação de elegibilidade para carteira com categoria confirmada pelo catálogo (`acao`, `fii`, `etf`, `unit`), sem inferir tipo apenas pelo sufixo `11`.
+- **Módulo de Planejamento Financeiro & Simulações:**
+  - `estimateDividends({ price, yieldAnnualPercent, quantity })`: calcula o patrimônio alocado (`totalInvested`) e a projeção de renda passiva anual (`annualYield`) e mensal (`monthlyYield`) para FIIs, ações e ETFs.
+  - `calculateCompoundInterest({ initialAmount, monthlyContribution, annualRatePercent, months })`: calcula a evolução patrimonial por juros compostos utilizando taxa nominal mensal $i = \frac{\text{annualRatePercent} / 100}{12}$, combinando capital inicial $P(1+i)^t$ e série uniforme de aportes $PMT \cdot \frac{(1+i)^t - 1}{i}$ (com tratamento exato para taxa `0%` e retorno `{ totalInvested, totalInterest, finalBalance }` arredondado a duas casas decimais).
+  - `simulateDividendReinvestment({ initialShares, sharePrice, monthlyDividendPerShare, monthlyContribution, months })`: simula mês a mês o efeito "bola de neve" de compra inteira de novas cotas (`Math.floor(saldoDisponivel / sharePrice)`) somando dividendos gerados pelas cotas acumuladas, aportes mensais e sobra de caixa transportada entre os meses. Retorna `{ totalShares, totalInvested, totalDividendsReceived, finalEquity, estimatedMonthlyDividend }`.
+  - **Integração na SPA ("Usar Cotação Atual"):** Na seção *Planejamento Financeiro & Simulações*, o usuário alterna entre abas acessíveis (`role="tablist"`) e pode importar com um clique o preço atual e o provento mensal estimado do ativo recém-consultado na tela para alimentar o simulador sem recarregar a página.
 
-O navegador acessa somente a porta 8080 do Nginx; a API fica na rede interna do Compose. O Dockerfile do frontend copia explicitamente os arquivos públicos, sem .env ou código do servidor. Não use build/push das imagens antigas para publicar esta alteração.
+### 6.2. Proxy Backend Node.js, Cache e Controle de Concorrência (`server.cjs` e `market-service.cjs`)
 
-### Busca, gráficos e cobertura
+- **Superfície HTTP Mínima e Segura (`server.cjs`):**
+  - Aceita apenas requisições `GET` com cabeçalhos `X-Content-Type-Options: nosniff` e `Cache-Control: no-store`.
+  - Lista branca estrita de arquivos estáticos públicos — tentativas de leitura de arquivos internos (`/.env`, `/server.cjs`, `/.git/config`) retornam `HTTP 404`.
+  - Validação rigorosa de parâmetros em `targetFor(url)`: nomes livres nunca são repassados ao endpoint de cotação, tokens vindos da query string do navegador são rejeitados e apenas combinações válidas de `range` (`1d`, `5d`, `1mo`, `6mo`, `1y`) e `interval` (`5m`, `30m`, `1d`) são aceitas.
+- **Resiliência, Serialização e Taxonomia de Erros (`market-service.cjs`):**
+  - **Coalescência e Fila Serializada:** Requisições simultâneas para a mesma URL reutilizam a mesma `Promise` em trânsito (`pending`), enquanto chamadas distintas aguardam em fila serializada (máximo de 1 chamada ativa à Brapi por vez) para evitar bloqueios por rajada.
+  - **Cache com TTL Diferenciado:** Catálogo armazenado por `5 minutos`, cotações e históricos por `1 minuto` e respostas de erro por `15 segundos` (ou pelo tempo determinado por `Retry-After`).
+  - **Proteção de Rate Limit (`HTTP 429`):** Interpreta `Retry-After` tanto em segundos quanto em formato `HTTP-date`, suspendendo novas consultas externas durante a janela de bloqueio sem vazar mensagens internas do provedor.
+  - **Códigos Seguros Padronizados:**
+    - `AUTH_MISSING` / `AUTH_INVALID`: credencial ausente para ativo restrito ou token recusado.
+    - `ACCESS_DENIED` / `PLAN_RESTRICTED`: diferenciação explícita entre `HTTP 403` genérico e restrição comprovada de plano comercial.
+    - `RATE_LIMIT` / `BUSY`: controle de limite de taxa externo ou fila local saturada.
+    - `NETWORK_ERROR` / `TIMEOUT` / `UPSTREAM_ERROR`: falhas de conectividade ou indisponibilidade temporária.
+    - `INVALID_RESPONSE` / `NO_QUOTE` / `NO_HISTORY`: payload malformado ou ativo sem cotação/histórico válido.
 
-- Um único botão Buscar, ao lado do campo no desktop e abaixo no celular. Sugestões ficam no fluxo da página.
-- Catálogo Brapi em /api/quote/list, busca normalizada com debounce de 350 ms e cancelamento de respostas antigas. Nomes exigem selecionar a classe desejada; nomes nunca viram tickers por suposição.
-- Tickers continuam aceitos diretamente; Enter, Escape e setas controlam sugestões. Uma lista local limitada é usada somente quando o catálogo falha, com aviso explícito e sem preços.
-- Mercado Financeiro começa em ^BVSP. Há períodos 1d/5d/1mo/6mo/1y e intervalos 5m/30m/1d; os valores aceitos retornados pela API são verificados quando presentes. Recursos sem permissão ou sem histórico mostram indisponibilidade, sem dados inventados.
-- Rankings usam amostra fixa e explicitamente limitada aos quatro tickers públicos PETR4, VALE3, ITUB4 e MGLU3. São quatro cotações, sequenciais e com cache. Não representa toda a B3 nem componentes completos do Ibovespa. Registros sem preço, variação ou data válida são excluídos, assim como cotações de pregão diferente do mais recente recebido. A interface informa o pregão e cobertura incompleta.
-- Cache do proxy: catálogo por 5 minutos, cotações/históricos por 1 minuto. Chamadas iguais são agrupadas; há somente uma chamada simultânea à Brapi. HTTP 429 respeita Retry-After, sem repetição automática. O plano da conta continua determinando a disponibilidade de ativos, períodos e intervalos.
+#### Avaliação Arquitetural de Provedores Financeiros
 
-### Favoritos e segurança
+O `MarketService` suporta injeção de provedores secundários sob contrato uniforme (`name`, `supports(target)`, `request(target)`), acionados somente em caso de falha da fonte primária e identificados no metadado `_market`:
 
-O schema existente permanece: favoritos_fiis(id, criado_em, ticker, nome, preco, dividend_yield). Nenhuma migração, alteração de RLS ou mudança destrutiva foi executada. A chave pública Supabase de config.js foi preservada. O cliente rejeita chaves service_role/secret. Apenas ativos com subType=fii confirmado pelo catálogo podem ser adicionados: índices, ações, units e ativos sem classificação ficam desabilitados. Não foi implementado favorito de ações; isso exige uma migração separada.
+| Fonte | Cobertura e Histórico | Autenticação e Limites | Decisão Arquitetural |
+| :--- | :--- | :--- | :--- |
+| **Brapi** | B3 (ações, FIIs, ETFs, units e `^BVSP`) em endpoints documentados | `Bearer` no backend; 4 ações públicas sem chave | **Provedor principal ativo** |
+| **HG Brasil** | Ações, FIIs e índices `BVSP`/`IFIX` | Histórico exige chave e plano compatível | Avaliada; não ativada sem comprovação gratuita |
+| **Twelve Data** | Listagem B3 com dados EOD em planos específicos | `8 créditos/min` no plano básico sem garantia gratuita B3 | Avaliada; não ativada como fallback padrão |
+| **Fintay** | Endpoint específico para histórico de índices | Requer chave dedicada validada | Avaliada; mantida fora da execução padrão |
 
-O token Brapi anteriormente embutido foi removido do frontend. Ele continua no histórico antigo do Git: revogue/rotacione essa chave no painel Brapi e configure uma nova em BRAPI_TOKEN no .env do servidor. Não reutilize a chave publicada. O proxy usa Authorization, nunca registra segredos e não devolve mensagens privadas do provedor. Não versione .env. A aplicação depende dos CDNs de Supabase e Chart.js; falhas são informadas na interface.
+### 6.3. Busca Inteligente, Gráficos (`Chart.js`) e Movimentos do Mercado (`market.js`)
 
-### Verificação
-
-```sh
-node --test
-node --check script.js
-node --check market.js
-node --check market-core.js
-node --check server.cjs
-```
-
-Alternativas: `npm test` e `npm run check`. O workflow .github/workflows/tests.yml executa testes e sintaxe em PRs para main, sem alterar proteções da branch. Os testes usam dados controlados e não dependem de Brapi ou Supabase ativos.
-
-Documentação consultada: [catálogo](https://brapi.dev/docs/acoes/list), [cotação e históricos v1](https://brapi.dev/docs/acoes), [autenticação e limites](https://brapi.dev/docs/authentication). O endpoint v1 foi mantido por compatibilidade com a integração existente; a documentação informa que continua ativo.
-
----
-
-## Registro da entrega anterior
-
-O texto a seguir preserva a documentação acadêmica anterior. Afirmações de deploy, imagens publicadas e execução de infraestrutura são registros anteriores, não validações desta contribuição.
-
-
-Aplicação web moderna para consulta, monitoramento e análise de cotações em tempo real de Fundos de Investimento Imobiliário (FIIs) listados na B3. O projeto evoluiu de uma Single Page Application (SPA) puramente estática da Etapa 01 para uma arquitetura robusta de microsserviço web com persistência em nuvem via **Supabase (BaaS)**, operações completas de **CRUD para carteira de favoritos**, conteinerização otimizada com **Docker e Nginx sobre Alpine Linux**, e cumprimento integral de todos os requisitos do edital e das quatro **Sidequests Oficiais (SQ1 a SQ4)**.
-
----
-
-## Metadados e Autor
-
-- **Projeto:** FIIsFinder (Evolução 2)
-- **Autor:** Henrique Lopes Borges de Souza
-- **Matrícula:** 22612443
-- **Disciplina / Contexto:** Bootcamp II — Desenvolvimento Web, Persistência e Infraestrutura Conteinerizada
-
-### Evolução Arquitetural: Da SPA Estática à Nuvem Conteinerizada
-Na Etapa 01, o FIIsFinder operava como uma SPA front-end sem estado (*stateless*), consumindo dados dinâmicos da API externa da Brapi e sem qualquer mecanismo de retenção de dados entre sessões.
-
-Na **Etapa 02**, a arquitetura foi substancialmente reestruturada:
-1. **Camada de Persistência Relacional:** Integração direta com banco de dados PostgreSQL hospedado no **Supabase**, permitindo que o investidor salve, consulte, edite notas e remova ativos favoritos de forma persistente, com segurança garantida por **Row Level Security (RLS)**.
-2. **Infraestrutura Conteinerizada:** Empacotamento completo da aplicação estática em uma imagem de contêiner leve e de alto desempenho utilizando **Nginx sobre Alpine Linux**, abstraindo o ambiente operacional e garantindo total reprodutibilidade tanto em desenvolvimento quanto em produção.
+- **Pesquisa Inteligente com Autocomplete:** Consulta `/api/quote/list` com debounce de `350 ms` e cancelamento automático de requisições obsoletas via `AbortController`. Permite pesquisa por razão social ou ticker com navegação completa por teclado (`ArrowUp`, `ArrowDown`, `Enter`, `Escape`). Em caso de falha de rede, recorre a uma lista local mínima apenas para seleção de tickers, sem exibir preços simulados.
+- **Painel Gráfico Interativo:** Renderizado via `Chart.js 4`, iniciando no índice Ibovespa (`^BVSP`) e acompanhando dinamicamente qualquer ativo pesquisado ou selecionado na carteira, com coloração semântica automática (alta/estabilidade em verde `#4ADE80` e queda em vermelho `#F87171`).
+- **Movimentos do Mercado:** Amostra transparente dos quatro ativos públicos da Brapi (`PETR4`, `VALE3`, `ITUB4`, `MGLU3`), validando consistência do mesmo dia de pregão em `America/Sao_Paulo` antes de compor os rankings.
 
 ---
 
-## Identidade e Links de Infraestrutura
+## 7. Persistência de Dados e Segurança Relacional (Supabase & LocalStorage)
 
-- **Repositório do Projeto (GitHub):** [https://github.com/owmygod12/FIIsFinder](https://github.com/owmygod12/FIIsFinder)
-- **Aplicação no ar (GitHub Pages):** [https://owmygod12.github.io/FIIsFinder/](https://owmygod12.github.io/FIIsFinder/)
-- **Repositório no Docker Hub:** [https://hub.docker.com/r/henriquelopescaze/fiisfinder](https://hub.docker.com/r/henriquelopescaze/fiisfinder)
-- **Imagem e Namespace Docker:** `henriquelopescaze/fiisfinder`
-- **Tags Disponíveis no Registry:** `1.0`, `1.1` e `latest`
-- **Painel do Banco de Dados (Supabase):** [https://supabase.com/](https://supabase.com/)
-- **API Externa de Cotações (Brapi):** [https://brapi.dev/](https://brapi.dev/)
+A camada `FavoritesStore` ([`favorites-store.js`](./favorites-store.js)) implementa persistência desacoplada com controle de concorrência (`mutex` contra cliques simultâneos) e dois modos configuráveis em [`config.js`](./config.js) (`FAVORITES_STORAGE`):
 
----
+1. **Modo `local` (Padrão Seguro Inicial):** Armazena a carteira em `localStorage` (`fiisfinder.ativos.v1`) no próprio navegador, permitindo testar todo o fluxo de **CRUD** (adicionar, filtrar por classe `Todos` / `Ações` / `FIIs` / `ETFs` / `Units`, sincronizar cotação atualizada e excluir) imediatamente, sem exigir sessão remota.
+2. **Modo `supabase` (Carteira em Nuvem Isolada por Usuário):** Utiliza autenticação do Supabase (incluindo suporte a *Anonymous Sign-ins* sob papel `authenticated`) combinada às migrações SQL versionadas na pasta [`sql/`](./sql/):
+   - [`sql/001_favoritos_ativos.sql`](./sql/001_favoritos_ativos.sql): Cria `public.favoritos_ativos` com `user_id uuid NOT NULL REFERENCES auth.users(id)`, `UNIQUE(user_id, ticker)`, `CHECK` constraints estritas de formato/preço, revogação de acesso `anon` e políticas **RLS** por proprietário (`(select auth.uid()) = user_id`) em `SELECT`, `INSERT`, `UPDATE` e `DELETE`.
+   - [`sql/002_importar_legados.sql`](./sql/002_importar_legados.sql): Script seguro de migração controlada a partir da tabela legada sem perda nem sobrescrita de dados.
+   - [`sql/003_reversao_sem_exclusao.sql`](./sql/003_reversao_sem_exclusao.sql): Reversão não destrutiva por arquivamento.
 
-## Persistência de Dados (Supabase / PostgreSQL)
+### Registro do Schema Base da Etapa 02 (`public.favoritos_fiis`)
 
-A persistência da carteira de favoritos utiliza um banco de dados relacional PostgreSQL gerenciado no Supabase. As interações ocorrem por meio do client oficial `@supabase/supabase-js`, garantindo tipagem consistente, integridade de dados e proteção em nível de linha.
-
-### DDL de Criação da Tabela `favoritos_fiis`
+Preserva-se abaixo a modelagem DDL original estabelecida na Etapa 02 para rastreabilidade acadêmica do projeto:
 
 ```sql
 CREATE TABLE public.favoritos_fiis (
@@ -203,141 +206,97 @@ CREATE TABLE public.favoritos_fiis (
     preco NUMERIC(10, 2) NOT NULL,
     dividend_yield NUMERIC(5, 2)
 );
-```
 
-### Políticas de Segurança (Row Level Security - RLS)
-
-Para garantir acesso controlado às operações de CRUD mantendo a simplicidade de consumo da chave pública anônima (`anon key`), o RLS foi habilitado na tabela com quatro políticas explícitas:
-
-```sql
--- 1. Habilitação do Row Level Security
 ALTER TABLE public.favoritos_fiis ENABLE ROW LEVEL SECURITY;
-
--- 2. Política de Leitura (SELECT)
-CREATE POLICY "Permitir leitura publica" 
-ON public.favoritos_fiis FOR SELECT 
-USING (true);
-
--- 3. Política de Inserção (INSERT)
-CREATE POLICY "Permitir insercao publica" 
-ON public.favoritos_fiis FOR INSERT 
-WITH CHECK (true);
-
--- 4. Política de Atualização (UPDATE)
-CREATE POLICY "Permitir atualizacao publica" 
-ON public.favoritos_fiis FOR UPDATE 
-USING (true);
-
--- 5. Política de Exclusão (DELETE)
-CREATE POLICY "Permitir exclusao publica" 
-ON public.favoritos_fiis FOR DELETE 
-USING (true);
 ```
-
-### Dicionário de Dados
 
 | Coluna | Tipo de Dado | Restrições | Descrição |
 | :--- | :--- | :--- | :--- |
-| `id` | `BIGINT` | `PRIMARY KEY`, `GENERATED ALWAYS AS IDENTITY` | Chave primária sequencial de 64 bits gerada automaticamente pelo PostgreSQL. |
-| `criado_em` | `TIMESTAMPTZ` | `NOT NULL`, `DEFAULT NOW()` | Carimbo de data e hora UTC com fuso horário da inserção do registro. |
-| `ticker` | `TEXT` | `NOT NULL`, `UNIQUE` | Código de negociação do ativo na B3 (ex: `MXRF11`, `HGLG11`). Restrição `UNIQUE` impede duplicidade na carteira. |
-| `nome` | `TEXT` | `NOT NULL` | Razão social ou denominação oficial do FII reportada pela administradora. |
-| `preco` | `NUMERIC(10, 2)` | `NOT NULL` | Cotação mais recente em reais (BRL), suportando até 8 dígitos inteiros e 2 casas decimais. |
-| `dividend_yield` | `NUMERIC(5, 2)` | `NULLABLE` | Indicador percentual anualizado de rendimentos (DY %). Permite valor nulo caso indisponível na API. |
+| `id` | `BIGINT` | `PRIMARY KEY`, `GENERATED ALWAYS AS IDENTITY` | Identificador sequencial de 64 bits gerado pelo PostgreSQL. |
+| `criado_em` | `TIMESTAMPTZ` | `NOT NULL`, `DEFAULT NOW()` | Carimbo de data e hora UTC da criação do registro. |
+| `ticker` | `TEXT` | `NOT NULL`, `UNIQUE` | Código de negociação na B3 (ex: `MXRF11`, `HGLG11`). |
+| `nome` | `TEXT` | `NOT NULL` | Denominação oficial do ativo reportada pela fonte. |
+| `preco` | `NUMERIC(10, 2)` | `NOT NULL` | Cotação em reais (BRL). |
+| `dividend_yield` | `NUMERIC(5, 2)` | `NULLABLE` | Dividend Yield anualizado em porcentagem (`%`). |
 
 ---
 
-## Sidequests Oficiais (SQ1 a SQ4)
+## 8. Suíte de Testes Automatizados (`node:test`) e Diagnóstico
+
+Os testes automatizados utilizam exclusivamente o executor nativo `node:test` e `node:assert/strict` (Node.js >= 22), operando com *mocks* determinísticos sem depender de chaves externas nem de banco de dados ativo:
+
+| Arquivo de Teste | Escopo Validado |
+| :--- | :--- |
+| [`tests/calculators.test.cjs`](./tests/calculators.test.cjs) | `calculateCompoundInterest` (cenário padrão, taxa `0%`, strings numéricas e entradas defensivas), `simulateDividendReinvestment` (efeito bola de neve vs. aporte puro, reinvestimento sem aporte, acúmulo de caixa fracionário e entradas inválidas) e integração DOM da seção *Planejamento Financeiro & Simulações* (abas e botão *Usar Cotação Atual*). |
+| [`tests/dividends.test.cjs`](./tests/dividends.test.cjs) | `estimateDividends` para FIIs, ações e ETFs (`DY = 0%`), arredondamento monetário IEEE 754 em duas casas, pureza funcional (`Object.freeze`) e compatibilidade dupla CommonJS/Navegador (`node:vm`). |
+| [`tests/favorites.test.cjs`](./tests/favorites.test.cjs) | CRUD completo em `FavoritesStore`, classificação por `tipo_ativo` (`acao`, `unit`, `fii`, `etf`), bloqueio de duplicatas/índices, preservação de registros na exclusão, trava de concorrência e exigência de sessão no modo Supabase. |
+| [`tests/integration.test.cjs`](./tests/integration.test.cjs) | `BrapiProvider` e `MarketService`: mapeamento seguro de status HTTP (`400` a `503`), não vazamento de tokens, tratamento de `TimeoutError`/HTML inválido/histórico vazio, codificação única de `^BVSP`, fallback entre provedores, `Retry-After` e endpoint `/api/market/health`. |
+| [`tests/market.test.cjs`](./tests/market.test.cjs) | Busca e normalização de ativos, ranking de altas/quedas, unicidade de IDs no `index.html`, proteção de arquivos privados no `server.cjs`, serialização de concorrência, cache e bloqueio `HTTP 429`. |
+
+### Comandos de Verificação de Qualidade
+
+```powershell
+# Executa toda a suíte automatizada de testes
+npm test
+
+# Verifica a sintaxe de todos os módulos JS/CJS da aplicação
+npm run check
+
+# Diagnóstico opcional de conectividade real com a Brapi (consome chamadas da API)
+npm run diagnose
+```
+
+---
+
+## 9. Conteinerização e Sidequests de Infraestrutura (SQ1 a SQ4)
+
+Na arquitetura multi-serviço ([`compose.yaml`](./compose.yaml)), o contêiner `web` ([`Dockerfile`](./Dockerfile) em `nginx:alpine` + [`nginx.conf`](./nginx.conf)) copia apenas os ativos públicos estáticos do frontend e encaminha `/api/market/` e `/healthz` ao serviço `api` ([`Dockerfile.api`](./Dockerfile.api) em `node:22-alpine`, executado sob usuário não-privilegiado `USER node`).
 
 ### SQ1 — Otimização do Contexto de Build (`.dockerignore`)
 
-Para otimizar o processo de compilação da imagem Docker, foi configurado o arquivo `.dockerignore` na raiz do repositório, filtrando arquivos de desenvolvimento, logs e histórico:
+O arquivo [`.dockerignore`](./.dockerignore) exclui metadados de versionamento (`.git`, `.gitignore`), documentações (`README.md`, `plan.md`, `docker-ps.png`), segredos locais (`.env`, `.env.*`), configurações de IDE e artefatos temporários:
+1. **Redução do Build Context:** Evita a transferência desnecessária do histórico `.git` e de imagens de documentação ao Docker Daemon, acelerando o build.
+2. **Imagens Enxutas (~28.8 MB no Nginx Alpine):** Garante que apenas artefatos estritamente necessários em runtime componham as camadas finais.
+3. **Segurança Operacional:** Impede o vazamento acidental de variáveis `.env` ou metadados internos do repositório dentro das imagens distribuídas.
 
-```text
-.git
-.gitignore
-README.md
-plan.md
-docker-ps.png
-*.log
-.DS_Store
-Thumbs.db
-```
+### SQ2 — Versionamento e Publicação no Docker Hub
 
-#### Justificativa Técnica:
-1. **Redução Drástica do Build Context:** Quando o comando `docker build` é disparado, o Docker CLI envia recursivamente o diretório atual via socket para o Docker Daemon. O diretório `.git` armazena histórico de commits, objetos binários e referências que não têm utilidade em tempo de execução web. A exclusão reduz expressivamente os megabytes trafegados, acelerando a fase inicial do build.
-2. **Minimização do Tamanho Final da Imagem (~28.8 MB):** A imagem final baseada em `nginx:alpine` atinge apenas **~28.8 MB**. O uso do `.dockerignore` impede que o comando `COPY . /usr/share/nginx/html/` injete documentações pesadas, prints (`docker-ps.png`) ou artefatos transitórios na camada de arquivos da imagem servida pelo Nginx.
-3. **Segurança e Higiene Operacional:** Previne o vazamento acidental de metadados de branches, credenciais temporárias ou informações estruturais do repositório dentro do contêiner publicado publicamente.
+Repositório oficial `henriquelopescaze/fiisfinder` publicado com três tags semânticas:
+- **`1.0`**: Release inicial estável da aplicação conteinerizada em Nginx Alpine.
+- **`1.1`**: Release incremental com refinamentos responsivos, cabeçalhos HTTP e integração Supabase.
+- **`latest`**: Ponteiro oficial para a build estável mais recente.
 
----
-
-### SQ2 — Versionamento e Publicação de Imagens no Docker Hub
-
-A imagem oficial do FIIsFinder foi tagueada e publicada no repositório oficial do Docker Hub (`henriquelopescaze/fiisfinder`), contemplando as três tags requeridas:
-
-- **`1.0`**: Versão inicial estável da aplicação conteinerizada servida via Nginx Alpine.
-- **`1.1`**: Versão incremental com refinamentos de layout, cabeçalhos de cache e integração Supabase.
-- **`latest`**: Ponteiro padrão para a versão de produção mais atualizada.
-
-#### Comandos de Tagging e Push Executados:
 ```bash
-# Tagging a partir da imagem base estável (1.0) para 1.1 e latest
 docker tag henriquelopescaze/fiisfinder:1.0 henriquelopescaze/fiisfinder:1.1
 docker tag henriquelopescaze/fiisfinder:1.0 henriquelopescaze/fiisfinder:latest
-
-# Publicação (Push) de todas as tags no repositório público
 docker push henriquelopescaze/fiisfinder:1.0
 docker push henriquelopescaze/fiisfinder:1.1
 docker push henriquelopescaze/fiisfinder:latest
 ```
 
----
-
 ### SQ3 — Documentação e Overview no Docker Hub
 
-A página oficial do repositório no Docker Hub foi estruturada com documentação técnica completa contendo:
-1. **Descrição da Aplicação:** Apresentação clara do FIIsFinder como ferramenta web para monitoramento de Fundos Imobiliários da B3 com persistência no Supabase.
-2. **Comando de Execução Rápida:** Instrução pronta para consumo imediato:
-   ```bash
-   docker run -d -p 8080:80 --name fiisfinder henriquelopescaze/fiisfinder:latest
-   ```
-3. **Link do Repositório GitHub:** Link direto para o código-fonte auditável: [https://github.com/owmygod12/FIIsFinder](https://github.com/owmygod12/FIIsFinder).
-
----
+A página pública do repositório [henriquelopescaze/fiisfinder](https://hub.docker.com/r/henriquelopescaze/fiisfinder) documenta o propósito da plataforma, o comando imediato `docker run -d -p 8080:80 --name fiisfinder henriquelopescaze/fiisfinder:latest` e a referência direta ao código-fonte no GitHub.
 
 ### SQ4 — Orquestração Local e Gestão de Escala com Kubernetes
 
 #### 1. Execução Prática de Contêineres Simultâneos
-Foram instanciados dois contêineres a partir das imagens publicadas, mapeados em portas distintas no host local:
+Validação prática de isolamento com duas instâncias simultâneas em portas distintas (`8080` e `8081`):
 
 ```bash
-# Inicialização do Contêiner 1 na porta 8080 (tag 1.0)
 docker run -d -p 8080:80 --name fiisfinder-app henriquelopescaze/fiisfinder:1.0
-
-# Inicialização do Contêiner 2 na porta 8081 (tag latest)
 docker run -d -p 8081:80 --name fiisfinder-replica henriquelopescaze/fiisfinder:latest
 ```
 
-Ambos os contêineres executam de forma totalmente isolada e paralela, acessíveis respectivamente em `http://localhost:8080` e `http://localhost:8081`.
-
-#### Evidência de Execução (`docker ps`):
-Abaixo encontra-se o registro visual comprovando ambos os contêineres em execução ativa (*Up*):
+Evidência de execução simultânea (`docker ps`):
 
 ![Execução simultânea de contêineres](./docker-ps.png)
 
----
+#### 2. Análise Teórica: Escala de 2 para 100 Contêineres com Kubernetes (K8s)
 
-#### 2. Análise Teórica: Gestão e Escala de 100 Contêineres via Kubernetes
+Enquanto 2 contêineres podem ser iniciados via CLI do Docker, escalar para **100 instâncias** exige orquestração declarativa com **Kubernetes** para resolver balanceamento de carga multi-nó, *self-healing*, conflitos de portas e *rolling updates* sem indisponibilidade:
 
-Operar 2 contêineres manualmente via CLI do Docker é trivial, contudo a administração manual de **100 contêineres** em ambiente de alta disponibilidade é operacionalmente inviável pelos seguintes desafios:
-- Inexistência de balanceamento de carga nativo entre múltiplos servidores físicos.
-- Impossibilidade de auto-recuperação (*self-healing*) em caso de falha de hardware ou processo.
-- Conflitos de portas e complexidade no roteamento de rede.
-- Dificuldade em aplicar atualizações sem interrupção de serviço (*rolling updates*).
-
-Para sanar essas limitações, utiliza-se o **Kubernetes (K8s)** como orquestrador, alicerçado em três conceitos fundamentais:
-
-```
+```text
 +-----------------------------------------------------------------------------------+
 |                                  KUBERNETES CLUSTER                               |
 |                                                                                   |
@@ -351,79 +310,18 @@ Para sanar essas limitações, utiliza-se o **Kubernetes (K8s)** como orquestrad
 |  +-----------------------------+                 +-----------------------------+  |
 |  |     WORKER NODE 01          |                 |     WORKER NODE 02          |  |
 |  |  [Kubelet]   [Kube-Proxy]   |                 |  [Kubelet]   [Kube-Proxy]   |  |
-|  |                             |                 |                             |  |
 |  |  +-----------------------+  |                 |  +-----------------------+  |  |
 |  |  |      POD (Replica)    |  |                 |  |      POD (Replica)    |  |  |
-|  |  |  +-----------------+  |  |                 |  |  +-----------------+  |  |  |
-|  |  |  | FIIsFinder App  |  |  |                 |  |  | FIIsFinder App  |  |  |  |
-|  |  |  | (Nginx Alpine)  |  |  |                 |  |  | (Nginx Alpine)  |  |  |  |
-|  |  |  +-----------------+  |  |                 |  |  +-----------------+  |  |  |
+|  |  |  [FIIsFinder App/API] |  |                 |  |  [FIIsFinder App/API] |  |  |
 |  |  +-----------------------+  |                 |  +-----------------------+  |  |
 |  |  ... até N pods             |                 |  ... até N pods             |  |
 |  +-----------------------------+                 +-----------------------------+  |
 +-----------------------------------------------------------------------------------+
 ```
 
-##### 1. Cluster:
-- O Cluster é a união lógica de servidores computacionais (físicos ou instâncias em nuvem) gerenciados de forma unificada.
-- Divide-se entre o **Control Plane** (composto por API Server, etcd, Scheduler e Controller Manager) e os **Worker Nodes** (máquinas que executam as aplicações, contendo Kubelet, Kube-Proxy e o Container Runtime).
-- Em uma escala de 100 contêineres, o **Scheduler** distribui automaticamente a carga computacional analisando limites de CPU e memória de cada nó, eliminando gargalos pontuais e garantindo alta disponibilidade física.
-
-##### 2. Pod:
-- O Pod é a **menor unidade atômica executável** no ecossistema Kubernetes. O Kubernetes não gerencia contêineres Docker isolados; ele instancia contêineres encapsulados dentro de Pods.
-- Todos os contêineres de um Pod compartilham o mesmo endereço IP de rede, portas de escuta locais e volumes de armazenamento.
-- No caso do FIIsFinder, cada Pod encapsula uma instância idêntica do Nginx servindo a SPA estática, operando como uma unidade descartável e replicável.
-
-##### 3. Réplicas (Deployments, ReplicaSets, HPA e Self-Healing):
-- **Declaração de Estado Desejado:** Através de um manifesto declarativo (`Deployment`), define-se `spec.replicas: 100`. O Kubernetes assegura continuamente que exatamente 100 instâncias estejam em execução por meio do ciclo de reconciliação (*reconciliation loop*).
-- **Self-Healing (Auto-Recuperação):** Caso nós físicos falhem ou contêineres travem, o `ReplicaSet` detecta a divergência entre o estado real e o estado desejado, recriando novos Pods imediatamente em nós saudáveis, sem intervenção humana.
-- **Service & Load Balancing:** Um recurso `Service` (como `LoadBalancer` ou `Ingress`) disponibiliza um único ponto de entrada para os usuários e balanceia o tráfego HTTP entre os 100 Pods ativos via round-robin.
-- **Horizontal Pod Autoscaler (HPA):** Permite redimensionar dinamicamente o número de réplicas (por exemplo, reduzindo para 20 Pods na madrugada e escalando para 100 réplicas durante o horário de abertura do pregão da B3) com base na utilização de CPU, memória ou taxa de requisições.
-
----
-
-## Como Executar Localmente
-
-### Opção 1: Execução com Docker (Recomendada)
-
-Com o Docker instalado em sua máquina, execute:
-
-```bash
-# 1. Baixar a imagem oficial diretamente do Docker Hub e iniciar o contêiner
-docker run -d -p 8080:80 --name fiisfinder-app henriquelopescaze/fiisfinder:latest
-```
-
-Após a inicialização, acesse em seu navegador:
-```text
-http://localhost:8080
-```
-
-Para inspecionar os logs do servidor Nginx:
-```bash
-docker logs -f fiisfinder-app
-```
-
-Para pausar e remover o contêiner:
-```bash
-docker stop fiisfinder-app && docker rm fiisfinder-app
-```
-
----
-
-### Opção 2: Execução Estática Alternativa (Live Server)
-
-Caso prefira executar sem o Docker, é possível servir os arquivos estáticos diretamente no navegador:
-
-1. Clone o repositório do projeto:
-   ```bash
-   git clone https://github.com/owmygod12/FIIsFinder.git
-   cd FIIsFinder
-   ```
-
-2. Certifique-se de que o arquivo `config.js` contenha as credenciais válidas do Supabase:
-   ```javascript
-   const SUPABASE_URL = "https://SEU-PROJETO.supabase.co";
-   const SUPABASE_ANON_KEY = "SUA_CHAVE_ANONIMA_AQUI";
-   ```
-
-3. Abra o diretório no **VS Code**, clique com o botão direito sobre o arquivo `index.html` e selecione **"Open with Live Server"** (ou utilize qualquer servidor estático HTTP local, como `python -m http.server 8080` ou `npx serve .`).
+1. **Cluster:** Conjunto unificado de servidores dividido entre **Control Plane** (`API Server`, `etcd`, `Scheduler`, `Controller Manager`) e **Worker Nodes** (`Kubelet`, `Kube-Proxy`, Container Runtime). O `Scheduler` distribui as 100 instâncias conforme disponibilidade de CPU e memória entre os nós físicos/virtuais.
+2. **Pod:** Menor unidade atômica agendável do Kubernetes, encapsulando um ou mais contêineres com namespace de rede, IP interno e volumes compartilhados como unidades efêmeras e replicáveis.
+3. **Réplicas (`Deployment`, `ReplicaSet`, `Service` e `HPA`):**
+   - **Estado Desejado e *Self-Healing*:** Ao declarar `spec.replicas: 100` em um `Deployment`, o `ReplicaSet` monitora continuamente o estado real e recria automaticamente qualquer Pod que falhe em outro nó saudável.
+   - **Load Balancing (`Service` / `Ingress`):** Expõe um ponto único de entrada e distribui o tráfego HTTP entre os 100 Pods ativos.
+   - **Horizontal Pod Autoscaler (`HPA`):** Ajusta elasticamente o número de réplicas conforme métricas reais de CPU, memória ou volume de requisições durante o horário de pregão da B3.
