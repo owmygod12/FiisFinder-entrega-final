@@ -52,7 +52,165 @@
         return Boolean(assetType(asset) && finite(asset.preco) && asset.preco > 0 &&
             typeof asset.nome === 'string' && asset.nome.trim() && Number.isFinite(Date.parse(asset.atualizado_em)));
     }
-    const api = { assetType, validFavorite, normalize, isTicker, finite, assets, search, rank, history, isFii, periodParams, chartData };
+    /**
+     * Calcula projeção de proventos e retorno sobre patrimônio investido.
+     * Suporta cotas de FIIs, ações e ETFs.
+     * @param {Object} params
+     * @param {number|string} params.price - Cotação atual do ativo.
+     * @param {number|string} params.yieldAnnualPercent - Dividend Yield anual em porcentagem (ex: 12 para 12%).
+     * @param {number|string} params.quantity - Quantidade de cotas ou ações.
+     * @returns {{ totalInvested: number, monthlyYield: number, annualYield: number }}
+     */
+    function estimateDividends(params = {}) {
+        const { price, yieldAnnualPercent, quantity } = params && typeof params === 'object' ? params : {};
+        const p = Number(price);
+        const y = Number(yieldAnnualPercent);
+        const q = Number(quantity);
+
+        if (
+            !Number.isFinite(p) ||
+            !Number.isFinite(y) ||
+            !Number.isFinite(q) ||
+            p <= 0 ||
+            q <= 0 ||
+            y < 0
+        ) {
+            return { totalInvested: 0, monthlyYield: 0, annualYield: 0 };
+        }
+
+        const totalInvested = Number((p * q).toFixed(2));
+        const annualYield = Number((totalInvested * (y / 100)).toFixed(2));
+        const monthlyYield = Number((annualYield / 12).toFixed(2));
+
+        return { totalInvested, monthlyYield, annualYield };
+    }
+    function parseNumericInput(value) {
+        if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+        if (typeof value === 'string' && value.trim() !== '') {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : NaN;
+        }
+        return NaN;
+    }
+    /**
+     * Calcula projeção de juros compostos com aporte inicial e aportes mensais recorrentes.
+     * Utiliza taxa nominal mensal: i_mensal = (annualRatePercent / 100) / 12.
+     * @param {Object} params
+     * @param {number|string} params.initialAmount - Capital inicial investido (R$).
+     * @param {number|string} params.monthlyContribution - Aporte mensal recorrente (R$).
+     * @param {number|string} params.annualRatePercent - Taxa de juros nominal anual em porcentagem (ex: 12 para 12%).
+     * @param {number|string} params.months - Prazo total da aplicação em meses.
+     * @returns {{ totalInvested: number, totalInterest: number, finalBalance: number }}
+     */
+    function calculateCompoundInterest(params = {}) {
+        const { initialAmount, monthlyContribution, annualRatePercent, months } =
+            params && typeof params === 'object' ? params : {};
+        const p = parseNumericInput(initialAmount);
+        const pmt = parseNumericInput(monthlyContribution);
+        const rate = parseNumericInput(annualRatePercent);
+        const t = parseNumericInput(months);
+
+        if (
+            !Number.isFinite(p) ||
+            !Number.isFinite(pmt) ||
+            !Number.isFinite(rate) ||
+            !Number.isFinite(t) ||
+            p < 0 ||
+            pmt < 0 ||
+            rate < 0 ||
+            t <= 0 ||
+            (p === 0 && pmt === 0)
+        ) {
+            return { totalInvested: 0, totalInterest: 0, finalBalance: 0 };
+        }
+
+        const monthlyRate = (rate / 100) / 12;
+        const rawInvested = p + pmt * t;
+        let rawFinalBalance;
+
+        if (monthlyRate === 0) {
+            rawFinalBalance = rawInvested;
+        } else {
+            const factor = Math.pow(1 + monthlyRate, t);
+            rawFinalBalance = p * factor + pmt * ((factor - 1) / monthlyRate);
+        }
+
+        const totalInvested = Number(rawInvested.toFixed(2));
+        const finalBalance = Number(rawFinalBalance.toFixed(2));
+        const totalInterest = Number((finalBalance - totalInvested).toFixed(2));
+
+        return { totalInvested, totalInterest, finalBalance };
+    }
+    /**
+     * Simula mês a mês o reinvestimento de proventos ("efeito bola de neve") somado a aportes mensais.
+     * @param {Object} params
+     * @param {number|string} params.initialShares - Quantidade inicial de cotas ou ações.
+     * @param {number|string} params.sharePrice - Preço unitário da cota ou ação (R$).
+     * @param {number|string} params.monthlyDividendPerShare - Provento mensal pago por cota/ação (R$).
+     * @param {number|string} params.monthlyContribution - Aporte mensal adicional do investidor (R$).
+     * @param {number|string} params.months - Prazo da simulação em meses.
+     * @returns {{ totalShares: number, totalInvested: number, totalDividendsReceived: number, finalEquity: number, estimatedMonthlyDividend: number }}
+     */
+    function simulateDividendReinvestment(params = {}) {
+        const { initialShares, sharePrice, monthlyDividendPerShare, monthlyContribution, months } =
+            params && typeof params === 'object' ? params : {};
+        const initShares = parseNumericInput(initialShares);
+        const price = parseNumericInput(sharePrice);
+        const dividendPerShare = parseNumericInput(monthlyDividendPerShare);
+        const contribution = parseNumericInput(monthlyContribution);
+        const rawMonths = parseNumericInput(months);
+        const totalMonths = Number.isFinite(rawMonths) ? Math.floor(rawMonths) : NaN;
+
+        if (
+            !Number.isFinite(initShares) ||
+            !Number.isFinite(price) ||
+            !Number.isFinite(dividendPerShare) ||
+            !Number.isFinite(contribution) ||
+            !Number.isFinite(totalMonths) ||
+            initShares < 0 ||
+            price <= 0 ||
+            dividendPerShare < 0 ||
+            contribution < 0 ||
+            totalMonths <= 0 ||
+            (initShares === 0 && contribution === 0)
+        ) {
+            return {
+                totalShares: 0,
+                totalInvested: 0,
+                totalDividendsReceived: 0,
+                finalEquity: 0,
+                estimatedMonthlyDividend: 0
+            };
+        }
+
+        let currentShares = initShares;
+        let cashBalance = 0;
+        let accumulatedDividends = 0;
+
+        for (let month = 0; month < totalMonths; month++) {
+            const dividendsReceived = currentShares * dividendPerShare;
+            accumulatedDividends += dividendsReceived;
+            const availableCash = Number((cashBalance + dividendsReceived + contribution).toFixed(8));
+            const newShares = Math.floor((availableCash + 1e-9) / price);
+            cashBalance = Math.max(0, Number((availableCash - newShares * price).toFixed(8)));
+            currentShares += newShares;
+        }
+
+        const totalShares = Number(currentShares.toFixed(2));
+        const totalInvested = Number((initShares * price + contribution * totalMonths).toFixed(2));
+        const totalDividendsReceived = Number(accumulatedDividends.toFixed(2));
+        const finalEquity = Number((currentShares * price + cashBalance).toFixed(2));
+        const estimatedMonthlyDividend = Number((currentShares * dividendPerShare).toFixed(2));
+
+        return {
+            totalShares,
+            totalInvested,
+            totalDividendsReceived,
+            finalEquity,
+            estimatedMonthlyDividend
+        };
+    }
+    const api = { assetType, validFavorite, normalize, isTicker, finite, assets, search, rank, history, isFii, periodParams, chartData, estimateDividends, calculateCompoundInterest, simulateDividendReinvestment };
     if (typeof module === 'object' && module.exports) module.exports = api;
     else root.MarketCore = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
