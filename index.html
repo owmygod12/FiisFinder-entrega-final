@@ -94,6 +94,130 @@
                 <section><h3>Maiores quedas</h3><ul id="losers-list" class="ranking-list"></ul></section></div>
         </section>
 
+        <section id="planning-section" class="dashboard-panel planning-section" aria-labelledby="planning-title">
+            <header class="section-header planning-header">
+                <div>
+                    <h2 id="planning-title">Planejamento Financeiro &amp; Simulações</h2>
+                    <p class="section-note">Simule o crescimento patrimonial com juros compostos ou o reinvestimento automático de proventos.</p>
+                </div>
+            </header>
+
+            <div class="planning-tabs" role="tablist" aria-label="Ferramentas de planejamento financeiro">
+                <button id="tab-compound" class="planning-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="panel-compound">
+                    Calculadora de Juros Compostos
+                </button>
+                <button id="tab-reinvest" class="planning-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-reinvest" tabindex="-1">
+                    Simulador de Reinvestimento de Dividendos
+                </button>
+            </div>
+
+            <div id="panel-compound" class="planning-panel" role="tabpanel" aria-labelledby="tab-compound">
+                <div class="planning-panel-header">
+                    <h3>Calculadora de Juros Compostos</h3>
+                </div>
+                <form id="compound-form" class="planning-form" novalidate>
+                    <div class="planning-fields">
+                        <div class="field-group">
+                            <label for="ci-initial" class="field-label">Aporte Inicial (R$)</label>
+                            <input type="number" id="ci-initial" class="planning-input" min="0" step="0.01" value="1000" placeholder="Ex: 1000">
+                        </div>
+                        <div class="field-group">
+                            <label for="ci-monthly" class="field-label">Aporte Mensal (R$)</label>
+                            <input type="number" id="ci-monthly" class="planning-input" min="0" step="0.01" value="200" placeholder="Ex: 200">
+                        </div>
+                        <div class="field-group">
+                            <label for="ci-rate" class="field-label">Taxa Anual (%)</label>
+                            <input type="number" id="ci-rate" class="planning-input" min="0" step="0.01" value="12" placeholder="Ex: 12">
+                        </div>
+                        <div class="field-group">
+                            <label for="ci-months" class="field-label">Prazo em Meses</label>
+                            <input type="number" id="ci-months" class="planning-input" min="1" step="1" value="12" placeholder="Ex: 12">
+                        </div>
+                    </div>
+                    <div class="planning-actions">
+                        <button id="ci-calculate-btn" class="btn-calc-primary" type="submit">Calcular</button>
+                    </div>
+                    <div id="ci-feedback" class="favorite-feedback hidden" role="status" aria-live="polite"></div>
+                </form>
+
+                <div id="ci-results" class="metrics-grid planning-results-3" aria-live="polite">
+                    <div class="metric">
+                        <span class="metric-label">Total Investido</span>
+                        <span class="metric-value" id="ci-total-invested">R$ 0,00</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Juros Acumulados</span>
+                        <span class="metric-value text-positive" id="ci-total-interest">R$ 0,00</span>
+                    </div>
+                    <div class="metric metric-highlight">
+                        <span class="metric-label">Saldo Bruto Final</span>
+                        <span class="metric-value" id="ci-final-balance">R$ 0,00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel-reinvest" class="planning-panel hidden" role="tabpanel" aria-labelledby="tab-reinvest">
+                <div class="planning-panel-header">
+                    <div>
+                        <h3>Simulador de Reinvestimento de Dividendos</h3>
+                        <p id="dr-quote-hint" class="section-note">Busque um ativo acima para importar preço e provento estimado com um clique.</p>
+                    </div>
+                    <button id="dr-use-quote-btn" class="btn-calc-secondary" type="button">Usar Cotação Atual</button>
+                </div>
+                <form id="reinvest-form" class="planning-form" novalidate>
+                    <div class="planning-fields planning-fields-5">
+                        <div class="field-group">
+                            <label for="dr-initial-shares" class="field-label">Cotas Iniciais</label>
+                            <input type="number" id="dr-initial-shares" class="planning-input" min="0" step="1" value="100" placeholder="Ex: 100">
+                        </div>
+                        <div class="field-group">
+                            <label for="dr-share-price" class="field-label">Preço da Cota (R$)</label>
+                            <input type="number" id="dr-share-price" class="planning-input" min="0.01" step="0.01" value="10.00" placeholder="Ex: 10,00">
+                        </div>
+                        <div class="field-group">
+                            <label for="dr-monthly-dividend" class="field-label">Provento por Cota (R$)</label>
+                            <input type="number" id="dr-monthly-dividend" class="planning-input" min="0" step="0.01" value="0.10" placeholder="Ex: 0,10">
+                        </div>
+                        <div class="field-group">
+                            <label for="dr-monthly-contribution" class="field-label">Aporte Mensal (R$)</label>
+                            <input type="number" id="dr-monthly-contribution" class="planning-input" min="0" step="0.01" value="100.00" placeholder="Ex: 100,00">
+                        </div>
+                        <div class="field-group">
+                            <label for="dr-months" class="field-label">Prazo em Meses</label>
+                            <input type="number" id="dr-months" class="planning-input" min="1" step="1" value="12" placeholder="Ex: 12">
+                        </div>
+                    </div>
+                    <div class="planning-actions">
+                        <button id="dr-simulate-btn" class="btn-calc-primary" type="submit">Simular</button>
+                    </div>
+                    <div id="dr-feedback" class="favorite-feedback hidden" role="status" aria-live="polite"></div>
+                </form>
+
+                <div id="dr-results" class="metrics-grid planning-results-5" aria-live="polite">
+                    <div class="metric">
+                        <span class="metric-label">Cotas Acumuladas</span>
+                        <span class="metric-value" id="dr-total-shares">0 cotas</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Capital Investido</span>
+                        <span class="metric-value" id="dr-total-invested">R$ 0,00</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Dividendos Reinvestidos</span>
+                        <span class="metric-value text-positive" id="dr-total-dividends">R$ 0,00</span>
+                    </div>
+                    <div class="metric metric-highlight">
+                        <span class="metric-label">Patrimônio Final</span>
+                        <span class="metric-value" id="dr-final-equity">R$ 0,00</span>
+                    </div>
+                    <div class="metric metric-highlight">
+                        <span class="metric-label">Dividendo Mensal Estimado</span>
+                        <span class="metric-value text-positive" id="dr-estimated-dividend">R$ 0,00</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="favoritos" class="favorites-section" aria-labelledby="favorites-title">
             <header class="favorites-header">
                 <div class="favorites-title-group">

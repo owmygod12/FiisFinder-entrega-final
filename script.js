@@ -166,6 +166,7 @@ function updateSaveButtonState() {
     const saved = cachedFavorites.some(row => row.ticker === currentFiiData?.ticker);
     elements.saveFavoriteBtn.disabled = savingFavorite || !favoriteStore || !MarketCore.validFavorite(currentFiiData) || saved;
     elements.saveFavoriteBtn.textContent = savingFavorite ? 'Salvando...' : saved ? 'Salvo nos favoritos' : 'Adicionar aos favoritos';
+    if (typeof syncQuoteToSimulatorState === 'function') syncQuoteToSimulatorState();
 }
 async function loadFavorites() {
     if (!favoriteStore) return;
@@ -260,4 +261,264 @@ async function startApp() {
 elements.saveFavoriteBtn.addEventListener('click', handleAddFavorite);
 elements.fiiLogo.addEventListener('error', () => elements.fiiLogo.style.display = 'none');
 document.getElementById('favorites-filter').addEventListener('change', renderFavoritesList);
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startApp); else startApp();
+// ==========================================================================
+// Planejamento Financeiro & Simulações (Juros Compostos e Reinvestimento)
+// ==========================================================================
+function setPlanningFeedback(elementId, message, type = 'info') {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    if (!message) {
+        el.className = 'favorite-feedback hidden';
+        el.textContent = '';
+        return;
+    }
+    el.className = 'favorite-feedback';
+    if (type === 'error') el.classList.add('feedback-error');
+    else if (type === 'success') el.classList.add('feedback-success');
+    el.textContent = message;
+    el.classList.remove('hidden');
+}
+
+function normalizeCalcValue(rawValue, fallbackIfEmpty = null) {
+    const trimmed = String(rawValue ?? '').trim().replace(',', '.');
+    if (trimmed === '' && fallbackIfEmpty !== null) return fallbackIfEmpty;
+    return trimmed;
+}
+
+function hasUsableAssetQuote() {
+    return Boolean(
+        currentFiiData &&
+        MarketCore.finite(currentFiiData.preco) &&
+        currentFiiData.preco > 0 &&
+        currentFiiData.type !== 'index' &&
+        !String(currentFiiData.ticker || '').startsWith('^')
+    );
+}
+
+function syncQuoteToSimulatorState() {
+    const btn = document.getElementById('dr-use-quote-btn');
+    const hint = document.getElementById('dr-quote-hint');
+    if (!btn) return;
+    const ready = hasUsableAssetQuote();
+    btn.classList.toggle('has-quote', ready);
+    if (hint) {
+        hint.textContent = ready
+            ? `Ativo consultado: ${currentFiiData.ticker} (${formatCurrency(currentFiiData.preco)}). Clique em "Usar Cotação Atual" para preencher.`
+            : 'Busque um ativo acima para importar preço e provento estimado com um clique.';
+    }
+}
+
+function activatePlanningTab(targetTab) {
+    const tabCompound = document.getElementById('tab-compound');
+    const tabReinvest = document.getElementById('tab-reinvest');
+    const panelCompound = document.getElementById('panel-compound');
+    const panelReinvest = document.getElementById('panel-reinvest');
+    if (!tabCompound || !tabReinvest || !panelCompound || !panelReinvest) return;
+
+    const isCompound = targetTab === 'compound';
+    tabCompound.classList.toggle('is-active', isCompound);
+    tabCompound.setAttribute('aria-selected', String(isCompound));
+    tabCompound.setAttribute('tabindex', isCompound ? '0' : '-1');
+
+    tabReinvest.classList.toggle('is-active', !isCompound);
+    tabReinvest.setAttribute('aria-selected', String(!isCompound));
+    tabReinvest.setAttribute('tabindex', !isCompound ? '0' : '-1');
+
+    panelCompound.classList.toggle('hidden', !isCompound);
+    panelReinvest.classList.toggle('hidden', isCompound);
+}
+
+function runCompoundCalculation() {
+    const initialInput = document.getElementById('ci-initial');
+    const monthlyInput = document.getElementById('ci-monthly');
+    const rateInput = document.getElementById('ci-rate');
+    const monthsInput = document.getElementById('ci-months');
+    if (!initialInput || !monthlyInput || !rateInput || !monthsInput) return;
+
+    const rawInitial = normalizeCalcValue(initialInput.value, '0');
+    const rawMonthly = normalizeCalcValue(monthlyInput.value, '0');
+    const rawRate = normalizeCalcValue(rateInput.value);
+    const rawMonths = normalizeCalcValue(monthsInput.value);
+
+    const numInitial = Number(rawInitial);
+    const numMonthly = Number(rawMonthly);
+    const numRate = rawRate === '' ? NaN : Number(rawRate);
+    const numMonths = rawMonths === '' ? NaN : Number(rawMonths);
+
+    const isValid =
+        Number.isFinite(numInitial) &&
+        Number.isFinite(numMonthly) &&
+        Number.isFinite(numRate) &&
+        Number.isFinite(numMonths) &&
+        numInitial >= 0 &&
+        numMonthly >= 0 &&
+        numRate >= 0 &&
+        numMonths > 0 &&
+        (numInitial > 0 || numMonthly > 0);
+
+    const result = MarketCore.calculateCompoundInterest({
+        initialAmount: rawInitial,
+        monthlyContribution: rawMonthly,
+        annualRatePercent: rawRate,
+        months: rawMonths
+    });
+
+    document.getElementById('ci-total-invested').textContent = formatCurrency(result.totalInvested);
+    document.getElementById('ci-total-interest').textContent = formatCurrency(result.totalInterest);
+    document.getElementById('ci-final-balance').textContent = formatCurrency(result.finalBalance);
+
+    if (!isValid) {
+        setPlanningFeedback('ci-feedback', 'Informe valores válidos não negativos, prazo em meses maior que zero e ao menos um aporte.', 'error');
+    } else {
+        setPlanningFeedback('ci-feedback', '');
+    }
+}
+
+function runDividendSimulation({ preserveFeedback = false } = {}) {
+    const sharesInput = document.getElementById('dr-initial-shares');
+    const priceInput = document.getElementById('dr-share-price');
+    const dividendInput = document.getElementById('dr-monthly-dividend');
+    const contributionInput = document.getElementById('dr-monthly-contribution');
+    const monthsInput = document.getElementById('dr-months');
+    if (!sharesInput || !priceInput || !dividendInput || !contributionInput || !monthsInput) return;
+
+    const rawShares = normalizeCalcValue(sharesInput.value, '0');
+    const rawPrice = normalizeCalcValue(priceInput.value);
+    const rawDividend = normalizeCalcValue(dividendInput.value, '0');
+    const rawContribution = normalizeCalcValue(contributionInput.value, '0');
+    const rawMonths = normalizeCalcValue(monthsInput.value);
+
+    const numShares = Number(rawShares);
+    const numPrice = rawPrice === '' ? NaN : Number(rawPrice);
+    const numDividend = Number(rawDividend);
+    const numContribution = Number(rawContribution);
+    const numMonths = rawMonths === '' ? NaN : Number(rawMonths);
+
+    const isValid =
+        Number.isFinite(numShares) &&
+        Number.isFinite(numPrice) &&
+        Number.isFinite(numDividend) &&
+        Number.isFinite(numContribution) &&
+        Number.isFinite(numMonths) &&
+        numShares >= 0 &&
+        numPrice > 0 &&
+        numDividend >= 0 &&
+        numContribution >= 0 &&
+        Math.floor(numMonths) > 0 &&
+        (numShares > 0 || numContribution > 0);
+
+    const result = MarketCore.simulateDividendReinvestment({
+        initialShares: rawShares,
+        sharePrice: rawPrice,
+        monthlyDividendPerShare: rawDividend,
+        monthlyContribution: rawContribution,
+        months: rawMonths
+    });
+
+    const shareLabel = result.totalShares === 1 ? 'cota' : 'cotas';
+    document.getElementById('dr-total-shares').textContent = `${result.totalShares.toLocaleString('pt-BR')} ${shareLabel}`;
+    document.getElementById('dr-total-invested').textContent = formatCurrency(result.totalInvested);
+    document.getElementById('dr-total-dividends').textContent = formatCurrency(result.totalDividendsReceived);
+    document.getElementById('dr-final-equity').textContent = formatCurrency(result.finalEquity);
+    document.getElementById('dr-estimated-dividend').textContent = formatCurrency(result.estimatedMonthlyDividend);
+
+    if (!isValid) {
+        setPlanningFeedback('dr-feedback', 'Informe preço da cota maior que zero, prazo válido, valores não negativos e cotas iniciais ou aporte mensal.', 'error');
+    } else if (!preserveFeedback) {
+        setPlanningFeedback('dr-feedback', '');
+    }
+}
+
+function handleUseCurrentQuote() {
+    if (!currentFiiData || !MarketCore.finite(currentFiiData.preco) || currentFiiData.preco <= 0) {
+        setPlanningFeedback('dr-feedback', 'Busque um ativo acima antes de usar a cotação atual.', 'error');
+        return;
+    }
+    if (currentFiiData.type === 'index' || String(currentFiiData.ticker || '').startsWith('^')) {
+        setPlanningFeedback('dr-feedback', 'Índices não possuem cotas negociáveis nem dividendos. Consulte uma ação, FII, unit ou ETF.', 'error');
+        return;
+    }
+
+    const priceInput = document.getElementById('dr-share-price');
+    const dividendInput = document.getElementById('dr-monthly-dividend');
+    if (!priceInput || !dividendInput) return;
+
+    priceInput.value = Number(currentFiiData.preco).toFixed(2);
+
+    if (MarketCore.finite(currentFiiData.dividend_yield) && currentFiiData.dividend_yield >= 0) {
+        const estimated = MarketCore.estimateDividends({
+            price: currentFiiData.preco,
+            yieldAnnualPercent: currentFiiData.dividend_yield,
+            quantity: 1
+        });
+        dividendInput.value = estimated.monthlyYield.toFixed(2);
+        setPlanningFeedback(
+            'dr-feedback',
+            `Cotação (${formatCurrency(currentFiiData.preco)}) e provento mensal estimado (${formatCurrency(estimated.monthlyYield)}/cota) preenchidos com dados de ${currentFiiData.ticker}.`,
+            'success'
+        );
+    } else {
+        if (!dividendInput.value || Number(dividendInput.value) < 0) {
+            dividendInput.value = '0.00';
+        }
+        setPlanningFeedback(
+            'dr-feedback',
+            `Preço de ${currentFiiData.ticker} (${formatCurrency(currentFiiData.preco)}) preenchido. A API não informou Dividend Yield; informe o provento mensal por cota.`,
+            'success'
+        );
+    }
+
+    runDividendSimulation({ preserveFeedback: true });
+}
+
+function initPlanningSimulators() {
+    const tabCompound = document.getElementById('tab-compound');
+    const tabReinvest = document.getElementById('tab-reinvest');
+    const compoundForm = document.getElementById('compound-form');
+    const reinvestForm = document.getElementById('reinvest-form');
+    const useQuoteBtn = document.getElementById('dr-use-quote-btn');
+
+    if (tabCompound && tabReinvest) {
+        tabCompound.addEventListener('click', () => activatePlanningTab('compound'));
+        tabReinvest.addEventListener('click', () => activatePlanningTab('reinvest'));
+
+        const handleTabKey = event => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            const nextIsCompound = document.activeElement === tabReinvest;
+            activatePlanningTab(nextIsCompound ? 'compound' : 'reinvest');
+            (nextIsCompound ? tabCompound : tabReinvest).focus();
+        };
+        tabCompound.addEventListener('keydown', handleTabKey);
+        tabReinvest.addEventListener('keydown', handleTabKey);
+    }
+
+    if (compoundForm) {
+        compoundForm.addEventListener('submit', event => {
+            event.preventDefault();
+            runCompoundCalculation();
+        });
+    }
+
+    if (reinvestForm) {
+        reinvestForm.addEventListener('submit', event => {
+            event.preventDefault();
+            runDividendSimulation();
+        });
+    }
+
+    if (useQuoteBtn) {
+        useQuoteBtn.addEventListener('click', handleUseCurrentQuote);
+    }
+
+    syncQuoteToSimulatorState();
+    runCompoundCalculation();
+    runDividendSimulation({ preserveFeedback: true });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { initPlanningSimulators(); startApp(); });
+} else {
+    initPlanningSimulators();
+    startApp();
+}
